@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.12)
+# https://cmake.org/cmake/help/latest/policy/CMP0092.html
+cmake_minimum_required(VERSION 3.15)
 
 project(pad-project LANGUAGES CXX)
 find_package(Catch2 REQUIRED)
@@ -41,12 +42,19 @@ elseif(CMAKE_CXX_COMPILER MATCHES "icpc.*$") # Intel compiler
     endif()
 endif()
 
-add_executable(pad-project main.cpp trimatrix.cpp trimatrix.h)
-target_link_libraries(pad-project Catch2::Catch2)
-target_link_libraries(pad-project gsl::gsl-lite-v1)
-
 # Make `gsl_Expects()` throw an exception on precondition failure (unit tests)
 add_compile_definitions(gsl_CONFIG_CONTRACT_VIOLATION_THROWS)
-
 # Enable audit-level checks in Debug mode
 add_compile_definitions("$<$<CONFIG:Debug>:gsl_CONFIG_CONTRACT_CHECKING_AUDIT>")
+# Disable runtime checks in Release mode
+add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:gsl_CONFIG_CONTRACT_CHECKING_OFF>")
+
+add_library(trimatrix "trimatrix.cpp" "trimatrix.h")
+target_link_libraries(trimatrix PUBLIC gsl::gsl-lite-v1)
+add_executable(trimatrix-test "test.cpp")
+target_link_libraries(trimatrix-test PUBLIC trimatrix Catch2::Catch2)
+add_executable(trimatrix-benchmark "benchmark.cpp")
+target_link_libraries(trimatrix-benchmark PUBLIC trimatrix benchmark::benchmark)
+
+enable_testing()
+add_test(NAME trimatrix COMMAND trimatrix-test)
