@@ -44,17 +44,13 @@ endif()
 
 # Make `gsl_Expects()` throw an exception on precondition failure (unit tests)
 add_compile_definitions(gsl_CONFIG_CONTRACT_VIOLATION_THROWS)
+
 # Enable audit-level checks in Debug mode
 add_compile_definitions("$<$<CONFIG:Debug>:gsl_CONFIG_CONTRACT_CHECKING_AUDIT>")
+
 # Disable runtime checks in Release mode
 add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:gsl_CONFIG_CONTRACT_CHECKING_OFF>")
 
-add_library(trimatrix "trimatrix.cpp" "trimatrix.h")
-target_link_libraries(trimatrix PUBLIC gsl::gsl-lite-v1)
-add_executable(trimatrix-test "test.cpp")
-target_link_libraries(trimatrix-test PUBLIC trimatrix Catch2::Catch2)
-add_executable(trimatrix-benchmark "benchmark.cpp")
-target_link_libraries(trimatrix-benchmark PUBLIC trimatrix benchmark::benchmark)
-
-enable_testing()
-add_test(NAME trimatrix COMMAND trimatrix-test)
+add_subdirectory("reduction")
+add_subdirectory("symmetrize")
+add_subdirectory("stencil")
