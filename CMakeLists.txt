@@ -10,8 +10,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(STDLIB_DEBUG_MODE "Enable the debug mode of the standard library" ON)
-# TODO enable address sanitizers
-#set(SANITIZERS "" CACHE STRING "List of sanitizers to enable (supported values: ASan, UBSan)")
 
 if(MSVC)
     add_compile_options(/W4)
@@ -20,7 +18,7 @@ if(MSVC)
         add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:_ITERATOR_DEBUG_LEVEL=1>")
     endif()
 
-elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
 
     if(STDLIB_DEBUG_MODE)
@@ -38,7 +36,7 @@ elseif(CMAKE_CXX_COMPILER MATCHES "icpc.*$") # Intel compiler
         )
 
     if (STDLIB_DEBUG_MODE)
-        # TODO
+        add_compile_options(-check-pointers=rw)
     endif()
 endif()
 
