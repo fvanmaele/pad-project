@@ -9,8 +9,6 @@ target_sources(matrix INTERFACE "matrix.h")
 
 add_executable(matrix-test "test.cpp")
 target_link_libraries(matrix-test PUBLIC matrix trimatrix Catch2::Catch2)
-add_executable(matrix-benchmark "benchmark.cpp")
-target_link_libraries(matrix-benchmark PUBLIC matrix trimatrix benchmark::benchmark)
 
 enable_testing()
 add_test(NAME matrix COMMAND matrix-test)

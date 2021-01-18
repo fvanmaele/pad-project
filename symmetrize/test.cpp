@@ -8,15 +8,18 @@
 using namespace PAD;
 
 template <typename Matrix>
-Matrix init_matrix(double[], double[], double[], double[],
+using Value = typename Matrix::value_type;
+
+template <typename Matrix>
+Matrix init_matrix(Value<Matrix>[], Value<Matrix>[], Value<Matrix>[], Value<Matrix>[],
                    ptrdiff_t, ptrdiff_t, ptrdiff_t) {
     std::terminate();
 }
 
 template <>
-TriMatrix init_matrix<TriMatrix>(double diag[], double lower[], double upper[], double[],
-                                 ptrdiff_t n, ptrdiff_t t, ptrdiff_t) {
-    TriMatrix M(n);
+TriMatrix<double> init_matrix<TriMatrix<double> >(double diag[], double lower[], double upper[], double[],
+                                                  ptrdiff_t n, ptrdiff_t t, ptrdiff_t) {
+    TriMatrix<double> M(n);
     double* M_D = M.diag();
     double* M_L = M.lower();
     double* M_R = M.upper();
@@ -34,9 +37,9 @@ TriMatrix init_matrix<TriMatrix>(double diag[], double lower[], double upper[], 
 }
 
 template <>
-SquareMatrix init_matrix<SquareMatrix>(double[], double[], double[], double elems[],
-                                       ptrdiff_t n, ptrdiff_t, ptrdiff_t s) {
-    SquareMatrix M(n);
+SquareMatrix<double> init_matrix<SquareMatrix<double> >(double[], double[], double[], double elems[],
+                                                        ptrdiff_t n, ptrdiff_t, ptrdiff_t s) {
+    SquareMatrix<double> M(n);
     double* M_elems = M.elements();
 
     for (ptrdiff_t k = 0; k < s; ++k) {
@@ -45,7 +48,7 @@ SquareMatrix init_matrix<SquareMatrix>(double[], double[], double[], double elem
     return M;
 }
 
-TEMPLATE_TEST_CASE("square matrix", "", TriMatrix, SquareMatrix) {
+TEMPLATE_TEST_CASE("square matrix", "", TriMatrix<double>, SquareMatrix<double>) {
     using Matrix = TestType;
 
     REQUIRE_THROWS(Matrix(-1));

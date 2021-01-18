@@ -3,12 +3,14 @@
 
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <gsl/gsl-lite.hpp>
 #include <limits>
 
 namespace PAD 
 {
-
+namespace detail
+{
 inline ptrdiff_t offset_lower_col_major(ptrdiff_t i, ptrdiff_t j, ptrdiff_t n) {
     // 1st summand: expansion of n*(n-1)/2 - (n-1-j)*(n-j)/2
     // 2nd summand: offset for i
@@ -20,23 +22,30 @@ inline ptrdiff_t offset_upper_row_major(ptrdiff_t i, ptrdiff_t j, ptrdiff_t n) {
     // 2nd summand: offset for j
     return i*(2*n - 1 - i)/2 + (j - i - 1);
 }
+} // namespace detail
 
+
+template <typename T>
 struct TriMatrix
 {
+    static_assert(std::is_arithmetic_v<T>);
+    typedef T value_type;
+    typedef ptrdiff_t difference_type;
+
     TriMatrix(ptrdiff_t n) 
         : _n(n), _t(n*(n-1) / 2)
     {
         gsl_Expects(n >= 1);
-        _diag  = std::unique_ptr<double>(new double[_n]);
+        _diag  = std::unique_ptr<T>(new T[_n]);
 
         if (n >= 2) {
             gsl_Expects(_n < std::numeric_limits<ptrdiff_t>::max() / (_n - 1));
-            _lower = std::unique_ptr<double>(new double[_t]);
-            _upper = std::unique_ptr<double>(new double[_t]);
+            _lower = std::unique_ptr<T>(new T[_t]);
+            _upper = std::unique_ptr<T>(new T[_t]);
         }
     }
  
-    double operator()(ptrdiff_t i, ptrdiff_t j) const
+    T operator()(ptrdiff_t i, ptrdiff_t j) const
     {
         gsl_Expects(i >= 0 && i < _n);
         gsl_Expects(j >= 0 && j < _n);
@@ -44,13 +53,13 @@ struct TriMatrix
         if (i == j) {
             return _diag.get()[i];
         } else if (i > j) { // row-major order
-            return _lower.get()[offset_lower_col_major(i, j, _n)];
+            return _lower.get()[detail::offset_lower_col_major(i, j, _n)];
         } else { // j > i
-            return _upper.get()[offset_upper_row_major(i, j, _n)];
+            return _upper.get()[detail::offset_upper_row_major(i, j, _n)];
         }
     }
 
-    double& operator()(ptrdiff_t i, ptrdiff_t j)
+    T& operator()(ptrdiff_t i, ptrdiff_t j)
     {
         gsl_Expects(i >= 0 && i < _n);
         gsl_Expects(j >= 0 && j < _n);
@@ -58,9 +67,9 @@ struct TriMatrix
         if (i == j) {
             return _diag.get()[i];
         } else if (i > j) { // row-major order
-            return _lower.get()[offset_lower_col_major(i, j, _n)];
+            return _lower.get()[detail::offset_lower_col_major(i, j, _n)];
         } else { // j > i
-            return _upper.get()[offset_upper_row_major(i, j, _n)];
+            return _upper.get()[detail::offset_upper_row_major(i, j, _n)];
         }
     }
 
@@ -69,19 +78,19 @@ struct TriMatrix
     }
 
     void symmetrize() {
-        double* _l = _lower.get();
-        double* _u = _upper.get();
+        T* _l = _lower.get();
+        T* _u = _upper.get();
 
         for (ptrdiff_t i = 0; i < _t; ++i) {
-            double s = (_l[i] + _u[i]) / 2.;
+            T s = (_l[i] + _u[i]) / 2.;
             _l[i] = s;
             _u[i] = s;
         }
     }
 
-    double* diag()  { return _diag.get(); }
-    double* lower() { return _lower.get(); }
-    double* upper() { return _upper.get(); }
+    T* diag()  { return _diag.get(); }
+    T* lower() { return _lower.get(); }
+    T* upper() { return _upper.get(); }
 
     ptrdiff_t n() const noexcept { return _n; }
     ptrdiff_t t() const noexcept { return _t; }
@@ -90,9 +99,9 @@ struct TriMatrix
 private:
     ptrdiff_t _n;
     ptrdiff_t _t;
-    std::unique_ptr<double> _diag;
-    std::unique_ptr<double> _lower;
-    std::unique_ptr<double> _upper;
+    std::unique_ptr<T> _diag;
+    std::unique_ptr<T> _lower;
+    std::unique_ptr<T> _upper;
 };
 
 } // namespace PAD
