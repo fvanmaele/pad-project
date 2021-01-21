@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <utility>
 #include <type_traits>
+#include <fstream>
+#include <vector>
 
 #include <fmt/core.h>
 
@@ -40,14 +42,13 @@ DNanoseconds measureClockResolution() {
         // Always remember the smallest non-zero time increment.
         duration = std::min(duration, time - lastTime);
     }
-
     return duration;
 }
 
 } // namespace detail
 
 template <typename Func, typename ...Args>
-double runBenchmark(Func F, Args&& ...args) {
+DMilliseconds runBenchmark(Func F, Args&& ...args) {
     static_assert(std::is_invocable<Func, Args...>::value);
 
     // XXX: computed for different template parameters
@@ -70,12 +71,39 @@ double runBenchmark(Func F, Args&& ...args) {
         for (int i = 0; i < numRepetitions; ++i) {
             F(std::forward<Args>(args)...);
         }
+
         end = Clock::now();
         dtSeq = std::chrono::duration_cast<DMilliseconds>(end - start) / numRepetitions;
     }
-
-    return dtSeq.count();
+    return dtSeq;
 }
+
+// Bandwidth for sum of n array elements and in-place matrix symmetrization
+template <typename T>
+double bandwidthArray(DMilliseconds runtime, size_t N) {
+    static_assert(std::is_arithmetic_v<T>); // float, int, double
+
+    double gbs = sizeof(T) * (double(N) / (1024 * 1024 * 1024)); // no. gigabytes in array
+    return gbs / (runtime.count() * 1000);
+}
+
+// input: ms, output: Gb/s
+template <typename T>
+double bandwidthStencil(DMilliseconds runtime) {
+    static_assert(std::is_arithmetic_v<T>);
+    // TODO
+}
+
+std::ofstream& writeCSV(std::ofstream& stream, const std::vector<std::pair<double, size_t> > &data) {
+    if (!stream)
+        throw std::runtime_error("could not open file for reading");
+    stream << "Throughput[GB/s],Size" << std::endl;
+    for (auto&& c : data) {
+        stream << fmt::format("{},{}", c.first, c.second) << std::endl;
+    }
+    return stream;
+}
+
 } // namespace asc::pad_ws20::upcxx
 
 

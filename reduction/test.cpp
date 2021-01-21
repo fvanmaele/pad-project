@@ -6,7 +6,7 @@
 
 #include "accumulate.h"
 
-using namespace PAD;
+using namespace asc::pad_ws20::upcxx;
 
 TEST_CASE("different result and summand type") {
     std::random_device rd;

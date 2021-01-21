@@ -7,7 +7,7 @@
 #include <gsl/gsl-lite.hpp>
 #include <limits>
 
-namespace PAD 
+namespace asc::pad_ws20::upcxx
 {
 namespace detail
 {
@@ -104,6 +104,6 @@ private:
     std::unique_ptr<T> _upper;
 };
 
-} // namespace PAD
+} // namespace asc::pad_ws20::upcxx
 
 #endif // TRIMATRIX_H

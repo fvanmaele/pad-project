@@ -5,7 +5,7 @@
 #include "trimatrix.h"
 #include "matrix.h"
 
-using namespace PAD;
+using namespace asc::pad_ws20::upcxx;
 
 template <typename Matrix>
 using Value = typename Matrix::value_type;

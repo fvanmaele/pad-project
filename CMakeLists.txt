@@ -1,13 +1,20 @@
 # https://cmake.org/cmake/help/latest/policy/CMP0092.html
 cmake_minimum_required(VERSION 3.15)
-
 project(pad-project LANGUAGES CXX)
+
 find_package(Catch2 REQUIRED)
 find_package(gsl-lite REQUIRED)
 find_package(fmt REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+option(UPCXX_VERBOSE ON)
+if (NOT DEFINED ENV{UPCXX_INSTALL})
+    set(ENV{UPCXX_INSTALL} "/usr/local/upcxx")  # default install path
+endif()
+find_package(UPCXX REQUIRED)
 
 option(CHECK_POINTERS "Check bounds for memory access through pointers" OFF)
 option(FP_VALUE_SAFETY "Disables non-value-safe optimizations for floating point data" ON)

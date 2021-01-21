@@ -9,7 +9,7 @@
 #include <utility> // for swap
 #include <iterator>
 
-namespace PAD
+namespace asc::pad_ws20::upcxx
 {
 template <typename T>
 class SquareMatrix
@@ -84,5 +84,6 @@ private:
     std::unique_ptr<T> _elements; // row-major order
 };
 
-}
+} // namespace asc::pad_ws20::upcxx
+
 #endif // MATRIX_H

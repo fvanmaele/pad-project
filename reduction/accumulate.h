@@ -6,7 +6,7 @@
 #include <cmath>
 #include <gsl/gsl-lite.hpp>
 
-namespace PAD
+namespace asc::pad_ws20::upcxx
 {
 namespace detail
 {
@@ -41,7 +41,7 @@ T sum(S array[], ptrdiff_t n, T total = 0) {
 // errors for large n, and allows parallelization (divide-and-conquer).
 // The base case should be chosen sufficiently large to reduce overhead.
 // Algorithm: https://en.wikipedia.org/wiki/Pairwise_summation
-template <typename S, typename T = S, size_t N = 1000>
+template <typename S, typename T = S, ptrdiff_t N = 1000>
 T sum_pairwise(S array[], ptrdiff_t n, T total = 0) {
     static_assert(detail::is_arithmetic_convertible<S, T>());
     static_assert(N >= 1);
@@ -56,7 +56,11 @@ T sum_pairwise(S array[], ptrdiff_t n, T total = 0) {
     return sum(array, n, total);
 }
 
-// XXX: document
+// Summation which reduces the numerical error by keeping a "running compensation"
+// (a variable to accumulate small errors). This is known as Kahan summation.
+// For this approach to be successful, it is important that the compiler does not
+// reorder floating-point operations (disabled by default in MSVC, clang and gcc, 
+// enabled by defalut in ICPC).
 template <typename S, typename T = S>
 T sum_kahan(S array[], ptrdiff_t n, S total = 0) {
     T c = 0.0;
@@ -73,12 +77,6 @@ T sum_kahan(S array[], ptrdiff_t n, S total = 0) {
     return total + c;
 }
 
-
-namespace upcxx
-{
-
-} // namespace upcxx
-
-} // namespace PAD
+} // namespace asc::pad_ws20::upcxx
 
 #endif // ACCUMULATE_H
