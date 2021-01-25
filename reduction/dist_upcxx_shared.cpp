@@ -56,14 +56,26 @@ int main(int argc, char** argv)
         u[offset + i] = 0.5 + rgen() % 100;
     }
 
-    // Every process now computes a partial sum
-    // TODO: use distributed object and reduce partial sums
-    double psum = 0;
+    // Create a reduction value for each process (universal name, local value)
+    upcxx::dist_object<double> psum_d(0);
+    upcxx::barrier();
+
     for (long i = 0; i < block_size; ++i) {
-        psum += u[offset + i];
+        *psum_d += u[offset + i];
     }
     upcxx::barrier(); // ensure all partial sums are available
+    std::cout << *psum_d << std::endl;
 
-    std::cout << psum << std::endl;
+    // Reduce partial sums through dist_object::fetch (communication) on master process
+    if (upcxx::rank_me() == 0) {
+        // partial sum for process 0
+        double res(*psum_d);
 
+        // partial sums for remaining processes
+        for (int k = 1; k < upcxx::rank_n(); ++k) {
+            double psum = psum_d.fetch(k).wait();
+            res += psum;
+        }
+        std::cout << res << std::endl;
+    }
 }

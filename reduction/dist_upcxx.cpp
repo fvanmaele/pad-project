@@ -29,31 +29,27 @@ int main(int argc, char** argv)
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // Compute partial sums, per-process. Use a distributed object for later reduction
-    // of partial sums. Downcasting to a raw pointer is possible, because we only use
-    // the block of the array local to the process for summation.
-    upcxx::dist_object<upcxx::global_ptr<double> > psum_dist(upcxx::new_<double>(0));
-    assert(psum_dist->is_local());
-    double* psum = psum_dist->local();
+    // Create a reduction value for each process (universal name, local value).
+    // Each local value can be accessed with operator* or operator->, but there
+    // is no guarantee that every local value is constructed after the call.
+    upcxx::dist_object<double> psum_d(0);
+    upcxx::barrier();
 
     for (long i = 0; i < block_size; ++i) {
-        *psum += u[i];
+        *psum_d += u[i];
     }
     upcxx::barrier(); // ensure all partial sums are available
-    std::cout << *psum << " (Rank " << upcxx::rank_me() << ")" << std::endl;
+    std::cout << *psum_d << " (Rank " << upcxx::rank_me() << ")" << std::endl;
 
     // Reduce partial sums through dist_object::fetch (communication) on master process
     if (upcxx::rank_me() == 0) {
         // partial sum for process 0
-        double res = *psum;
+        double res(*psum_d);
+
         // partial sums for remaining processes
         for (int k = 1; k < upcxx::rank_n(); ++k) {
-            // get pointer to remote psum
-            upcxx::global_ptr<double> psum_ptr_k = psum_dist.fetch(k).wait();
-            // get value of remote psum
-            double psum_k = upcxx::rget(psum_ptr_k).wait();
-            // finally, add value to result
-            res += psum_k;
+            double psum = psum_d.fetch(k).wait();
+            res += psum;
         }
         std::cout << res << std::endl;
     }

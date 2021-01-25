@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     const size_t seed = 42;
     std::mt19937_64 rgen(seed);
     
-    const long N = 2 << 10;
+    const long N = 2 << 18;
     //const long block_size = N / upcxx::rank_n();
     float* u = new float[N];
     //rgen.discard(rank * block_size);
