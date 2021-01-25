@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
     // Every process now initializes a seperate block of the shared array
     // (in the corresponding node) with random values
-    size_t offset = proc_id_node * block_size;
+    long offset = proc_id_node * block_size;
     std::mt19937_64 rgen(seed);
     rgen.discard(offset);
 
@@ -87,9 +87,17 @@ int main(int argc, char** argv)
     upcxx::dist_object<double> psum_d(0);
     upcxx::barrier();
 
+    // OpenMP reduction does not support pointers or references. Create a temporary
+    // copy for each process.
+    double psum_v = *psum_d;
+    
+    // No upcxx functions are called within the OpenMP parallel region, so it should
+    // not be required to use the thread-safe version of the library (UPCXX_THREADMODE=par).
+    #pragma omp parallel for simd reduction(+: psum_v)
     for (long i = 0; i < block_size; ++i) {
-        *psum_d += u[offset + i];
+        psum_v += u[offset + i];
     }
+    *psum_d = psum_v; // write back value to distributed object
 
     // Ensure all partial sums are available
     upcxx::barrier();

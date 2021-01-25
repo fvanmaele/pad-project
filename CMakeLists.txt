@@ -18,20 +18,32 @@ if (NOT DEFINED ENV{UPCXX_INSTALL})
 endif()
 find_package(UPCXX REQUIRED)
 
-option(CHECK_POINTERS "Check bounds for memory access through pointers" OFF)
-option(FP_VALUE_SAFETY "Disables non-value-safe optimizations for floating point data" ON)
 option(STDLIB_DEBUG_MODE "Enable the debug mode of the standard library" OFF)
+OPTION(AVX_512_VECTORIZE "Optimizations for AVX-512 (Skylake)" OFF)
 
 if(MSVC)
     add_compile_options(/W4)
-
     if(STDLIB_DEBUG_MODE)
         add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:_ITERATOR_DEBUG_LEVEL=1>")
     endif()
+    if(AVX_512_VECTORIZE)
+        add_compile_options(/arch:AVX512)
+    endif()
 
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-
+    add_compile_options(
+        -Wall -Wextra -Wpedantic
+    )
+    if(AVX_512_VECTORIZE)
+        add_compile_options(
+            -march=skylake-avx512 # TODO: other arch (e.g core-avx512)
+            -ftree-vectorize
+            -fopt-infovec-missed
+            -vec-report=5
+            -Rpass-missed=loop-vectorize
+            -Rpass-analysis=loop-vectorize
+            )
+    endif()
     if(STDLIB_DEBUG_MODE)
         add_compile_definitions("_GLIBCXX_DEBUG")
         add_compile_definitions("$<IF:$<CONFIG:Debug>,_LIBCPP_DEBUG=1,_LIBCPP_DEBUG=0>")
@@ -39,21 +51,18 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Cla
 
 elseif(CMAKE_CXX_COMPILER MATCHES "icpc.*$") # Intel compiler
     add_compile_options(
-        -xskylake -axskylake-avx512,mic-avx512 #multi-target architecture
-        -qopt-zmm-usage=high
-        -qopt-report=5
-        -qopt-report-phase=vec
-        -save-temps -g
-        )
-
-    if (CHECK_POINTERS)
-        add_compile_options(-check-pointers -check-pointers-dangling)
+        -w3 -diag-disable:remark
+        -fp-model precise
+    )
+    if(AVX_512_VECTORIZE)
+        add_compile_options(
+            -xskylake -axskylake-avx512,mic-avx512 #multi-target architecture
+            -qopt-zmm-usage=high
+            -qopt-report=5
+            -qopt-report-phase=vec
+            -save-temps -g
+            )
     endif()
-
-    if (FP_VALUE_SAFETY)
-        add_compile_options(-fp-model precise)
-    endif()
-
     if (STDLIB_DEBUG_MODE)
         add_compile_definitions("_GLIBCXX_DEBUG")
     endif()
