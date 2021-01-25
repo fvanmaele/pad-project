@@ -35,7 +35,8 @@ int main(int argc, char** argv)
         }
     }
     if (N <= 0) {
-        throw std::invalid_argument("a positive array size is required (specify with --size)");
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
     }
 
     // BEGIN PARALLEL REGION

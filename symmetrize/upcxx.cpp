@@ -34,9 +34,10 @@ int main(int argc, char** argv)
                 std::terminate();
         }
     }
-    if (dim <= 0)
-        throw std::invalid_argument("a positive dimension is required");
-
+    if (dim <= 0) {
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
+    }
     // BEGIN PARALLEL REGION
     upcxx::init();
     int nproc = upcxx::rank_n();

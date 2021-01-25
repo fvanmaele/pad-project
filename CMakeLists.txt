@@ -36,7 +36,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Cla
     )
     if(AVX_512_VECTORIZE)
         add_compile_options(
-            -march=skylake-avx512 # TODO: other arch (e.g core-avx512)
+            -march=skylake-avx512 # TODO: other arch (e.g core-avx512, native)
             -ftree-vectorize
             -fopt-infovec-missed
             -vec-report=5
@@ -70,10 +70,8 @@ endif()
 
 # Make `gsl_Expects()` throw an exception on precondition failure (unit tests)
 add_compile_definitions(gsl_CONFIG_CONTRACT_VIOLATION_THROWS)
-
 # Enable audit-level checks in Debug mode
 add_compile_definitions("$<$<CONFIG:Debug>:gsl_CONFIG_CONTRACT_CHECKING_AUDIT>")
-
 # Disable runtime checks in Release mode
 add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:gsl_CONFIG_CONTRACT_CHECKING_OFF>")
 

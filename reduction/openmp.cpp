@@ -32,17 +32,20 @@ int main(int argc, char** argv) {
         }
     }
     if (N <= 0) {
-        throw std::invalid_argument("a positive array size is required");
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
     }
 
     float* u = new float[N];
     std::mt19937_64 rgen(seed);
+
+#pragma omp parallel for schedule(static)
     for (long i = 0; i < N; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
-    
+
     double sum = 0;
-    #pragma omp parallel for simd reduction(+: sum)
+#pragma omp parallel for simd reduction(+: sum) schedule(static)
     for (long i = 0; i < N; ++i) {
         sum += u[i];
     }

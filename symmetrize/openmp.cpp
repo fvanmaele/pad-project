@@ -32,7 +32,8 @@ int main(int argc, char** argv) {
         }
     }
     if (dim <= 0) {
-        throw std::invalid_argument("a positive dimension is required");
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
     }
 
     const long N = dim*(dim - 1) / 2;
@@ -40,12 +41,13 @@ int main(int argc, char** argv) {
     std::vector<float> upper(dim);
 
     std::mt19937_64 rgen(seed);
+#pragma omp parallel for schedule(static)
     for (long i = 0; i < N; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
     }
 
-    #pragma omp parallel for simd shared(lower, upper)
+#pragma omp parallel for shared(lower, upper) schedule(static)
     for (long i = 0; i < N; ++i) {
         float s = (lower[i] + upper[i]) / 2.;
         lower[i] = s;

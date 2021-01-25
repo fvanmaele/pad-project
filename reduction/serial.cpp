@@ -1,8 +1,9 @@
 
-#include <vector>
 #include <random>
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <vector>
 
 #include <cstdlib>
 #include <getopt.h>
@@ -33,18 +34,16 @@ int main(int argc, char** argv) {
         }
     }
     if (N <= 0) {
-        throw std::invalid_argument("a positive array size is required");
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
     }
     
-    std::vector<float> u(N);
+    std::vector<float> v(N);
     std::mt19937_64 rgen(seed);
-    for (auto&& c: u) {
-        c = 0.5 + rgen() % 100;
-    }
-    
-    double sum = 0;
-    for (auto&& c: u) {
-        sum += c;
-    }
-    std::cout << sum << std::endl;
+    std::generate(v.begin(), v.end(), [&rgen]() {
+        return 0.5 + rgen() % 100;
+    });
+
+    double res = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
+    std::cout << res << std::endl;
 }

@@ -32,7 +32,8 @@ int main(int argc, char** argv) {
         }
     }
     if (dim <= 0) {
-        throw std::invalid_argument("a positive dimension is required");
+        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::exit(1);
     }
 
     // TODO: use TriMatrix class implementation
