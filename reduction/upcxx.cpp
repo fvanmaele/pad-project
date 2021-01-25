@@ -35,7 +35,7 @@ int main(int argc, char** argv)
         }
     }
     if (N <= 0) {
-        throw std::invalid_argument("a positive array size is required");
+        throw std::invalid_argument("a positive array size is required (specify with --size)");
     }
 
     // BEGIN PARALLEL REGION
@@ -66,6 +66,7 @@ int main(int argc, char** argv)
 
     for (long i = 0; i < block_size; ++i) {
         *psum_d += u[i];
+        //*psum_d = upcxx::op_fast_add(*psum_d, u[i]);
     }
 
     // Ensure all partial sums are available
@@ -84,7 +85,6 @@ int main(int argc, char** argv)
         }
         std::cout << res << std::endl;
     }
-
     upcxx::delete_array(u_g);
 
     upcxx::finalize();
