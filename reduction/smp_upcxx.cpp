@@ -5,8 +5,6 @@
 
 #include <upcxx/upcxx.hpp>
 
-#include "accumulate.h"
-
 // Initialize blocks with random values
 float* smp_init_random(upcxx::global_ptr<float> u_g, long block_size, 
                        upcxx::intrank_t rank = 0, size_t seed = 42) 
@@ -23,7 +21,7 @@ float* smp_init_random(upcxx::global_ptr<float> u_g, long block_size,
     return u;
 }
 
-// Reduction per process (shared array)
+// Reduction per process (local array)
 int main(int argc, char** argv) {
     // BEGIN PARALLEL REGION
     upcxx::init();
@@ -33,32 +31,19 @@ int main(int argc, char** argv) {
     assert(block_size % 2 == 0);
     assert(N == block_size * upcxx::rank_n());
 
-    int g_id = upcxx::rank_me();
-    int g_cnt = upcxx::rank_n();
-    
-    upcxx::global_ptr<float> u_g;
-    float* u;
-    
-    // Initialize shared array in master process
-    if (g_id == 0) {
-        u_g = upcxx::new_array<float>(N);
-        u = smp_init_random(u_g, N, 0);
-    }
-
-    // Broadcast shared array to other processes
-    u_g = upcxx::broadcast(u_g, 0).wait();
-    u = u_g.local();
+    // Initialize array with random values
+    upcxx::global_ptr<float> u_g(upcxx::new_array<float>(block_size));
+    float* u = smp_init_random(u_g, block_size, upcxx::rank_me());
 
     // Compute partial sums
-    double psum = 0;
-    long offset = upcxx::rank_me() * block_size;
+    double psum(0);
 
     for (long i = 0; i < block_size; ++i) {
-        psum += u[offset + i];
+        psum += u[i];
     }
     upcxx::barrier(); // ensure all partial sums are available
 
-    std::cout << psum << std::endl;
+    std::cout << psum << " (Rank " << upcxx::rank_me() << ")" << std::endl;
 
     // Initialize reduction value on main thread
     upcxx::global_ptr<double> res_g = nullptr;
@@ -67,11 +52,10 @@ int main(int argc, char** argv) {
     }
 
     // Broadcast reduction value to all processes
-    // XXX: some way to do this with upcxx::dist_object?
     res_g = upcxx::broadcast(res_g, 0).wait();
     double* res = res_g.local();
 
-    // Add partial sums process-by-process
+    // Add partial sums process-by-process (avoid concurrent writes)
     for (int k = 0; k < upcxx::rank_n(); ++k) {
         if (upcxx::rank_me() == k) {
             *res += psum;
@@ -80,9 +64,7 @@ int main(int argc, char** argv) {
     }
     std::cout << *res << std::endl;
 
-    if (g_id == 0) {
-        upcxx::delete_array(u_g);
-    }
+    upcxx::delete_array(u_g);
 
     upcxx::finalize();
     // END PARALLEL REGION

@@ -5,6 +5,8 @@ project(pad-project LANGUAGES CXX)
 find_package(Catch2 REQUIRED)
 find_package(gsl-lite REQUIRED)
 find_package(fmt REQUIRED)
+find_package(Threads REQUIRED)
+find_package(OpenMP 4.0 REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
