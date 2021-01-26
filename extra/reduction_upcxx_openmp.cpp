@@ -55,11 +55,14 @@ int main(int argc, char** argv)
     float* u = u_g.local(); // downcast to local pointer
     
     std::mt19937_64 rgen(seed);
+    // XXX: discard according to rank
+    // rgen.discard(upcxx::rank_me() * block)
+//#pragma omp parallel for schedule(static)
     for (long i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // Create a partial value for each process, which is later reduced with upcxx::reduce_one.
+    // Create a partial value for each process, later reduced with upcxx::reduce_all.
     double psum(0);
 #pragma omp parallel for reduction(+: psum)
     for (long i = 0; i < block_size; ++i) {
@@ -70,7 +73,7 @@ int main(int argc, char** argv)
     upcxx::barrier();
     std::cout << psum << " (Rank " << proc_id << ")" << std::endl;
 
-    // Reduce partial sums through dist_object::fetch (communication) on master process
+    // Reduce partial sums
     double res = upcxx::reduce_all(psum, upcxx::op_fast_add).wait();
     if (proc_id == 0) {
         std::cout << res << std::endl;

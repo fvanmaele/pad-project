@@ -53,8 +53,11 @@ int main(int argc, char** argv)
     upcxx::global_ptr<float> u_g(upcxx::new_array<float>(block_size));
     assert(u_g.is_local()); // ensure global pointer has affinity to a local process
     float* u = u_g.local(); // downcast to local pointer
-    
+
+    // Fill with random values (using discard to ensure pseudo-random values
+    // across the full array)
     std::mt19937_64 rgen(seed);
+    rgen.discard(proc_id * block_size);
     for (long i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
@@ -67,19 +70,19 @@ int main(int argc, char** argv)
 
     for (long i = 0; i < block_size; ++i) {
         *psum_d += u[i];
-        //*psum_d = upcxx::op_fast_add(*psum_d, u[i]);
     }
 
     // Ensure all partial sums are available
     upcxx::barrier();
     std::cout << *psum_d << " (Rank " << proc_id << ")" << std::endl;
 
-    // Reduce partial sums through dist_object::fetch (communication) on master process
+    // Reduce partial sums through dist_object::fetch (communication) on master process.
+    // Alternative (with reduction in random order): upcxx::reduce_all() or reduce_one()
     if (proc_id == 0) {
         // partial sum for process 0
         double res(*psum_d);
 
-        // partial sums for remaining processes
+        // partial sums for remaining processes (in ascending order)
         for (int k = 1; k < upcxx::rank_n(); ++k) {
             double psum = psum_d.fetch(k).wait();
             res += psum;

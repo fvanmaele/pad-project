@@ -5,7 +5,7 @@
 #include <memory>
 #include <type_traits>
 #include <limits>
-#include <fstream>
+#include <iostream>
 
 #include <gsl/gsl-lite.hpp>
 
@@ -84,6 +84,7 @@ struct TriMatrix
         T* _l = _lower.get();
         T* _u = _upper.get();
 
+#pragma omp parallel for simd shared(_l, _u) linear(i:1)
         for (ptrdiff_t i = 0; i < _t; ++i) {
             T s = (_l[i] + _u[i]) / 2.;
             _l[i] = s;
@@ -91,6 +92,32 @@ struct TriMatrix
         }
     }
 
+    friend std::ostream& dump(std::ostream& stream, const TriMatrix& M) {
+        if (stream) {
+            T* lower = M._lower.get();
+            stream << "LOWER: ";
+            for (ptrdiff_t i = 0; i < M._t - 1; ++i) {
+                stream << lower[i] << " ";
+            }
+            stream << lower[M._t - 1] << std::endl;
+            
+            T* diag = M._diag.get();
+            stream << "DIAG: ";
+            for (ptrdiff_t i = 0; i < M._n - 1; ++i) {
+                stream << diag[i] << " ";
+            }
+            stream << diag[M._n - 1] << std::endl;
+
+            T* upper = M._upper.get();
+            stream << "UPPER: ";
+            for (ptrdiff_t i = 0; i < M._t - 1; ++i) {
+                stream << upper[i] << " ";
+            }
+            stream << upper[M._t - 1] << std::endl;
+        }
+        return stream;
+    }
+    
     T* diag()  { return _diag.get(); }
     T* lower() { return _lower.get(); }
     T* upper() { return _upper.get(); }

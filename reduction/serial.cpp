@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
         return 0.5 + rgen() % 100;
     });
 
+    // XXX: parallel execution policy?
     double res = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
     std::cout << res << std::endl;
 }

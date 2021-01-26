@@ -79,40 +79,35 @@ int main(int argc, char** argv)
     std::mt19937_64 rgen(seed);
     rgen.discard(offset);
 
+#pragma omp parallel for
     for (long i = 0; i < block_size; ++i) {
         u[offset + i] = 0.5 + rgen() % 100;
     }
 
-    // Create a reduction value for each process (universal name, local value)
-    upcxx::dist_object<double> psum_d(0);
-    upcxx::barrier();
-
-    // OpenMP reduction does not support pointers or references. Create a temporary
-    // copy for each process.
-    double psum_v = *psum_d;
-    
     // No upcxx functions are called within the OpenMP parallel region, so it should
     // not be required to use the thread-safe version of the library (UPCXX_THREADMODE=par).
-    #pragma omp parallel for simd reduction(+: psum_v)
+    double psum(0);
+#pragma omp parallel for reduction(+: psum_v)
     for (long i = 0; i < block_size; ++i) {
-        psum_v += u[offset + i];
+        psum += u[offset + i];
     }
-    *psum_d = psum_v; // write back value to distributed object
 
     // Ensure all partial sums are available
     upcxx::barrier();
     std::cout << *psum_d << std::endl;
 
-    // Reduce partial sums through dist_object::fetch (communication) on master process
-    if (upcxx::rank_me() == 0) {
-        // partial sum for process 0
-        double res(*psum_d);
+    // Ensure all partial sums are available.
+    upcxx::barrier();
+    std::cout << psum << " (Rank " << proc_id << ")" << std::endl;
 
-        // partial sums for remaining processes
-        for (int k = 1; k < upcxx::rank_n(); ++k) {
-            double psum = psum_d.fetch(k).wait();
-            res += psum;
-        }
+    // Reduce partial sums
+    double res = upcxx::reduce_all(psum, upcxx::op_fast_add).wait();
+    if (proc_id == 0) {
         std::cout << res << std::endl;
     }
+
+    upcxx::delete_array(u_g);
+
+    upcxx::finalize();
+    // END PARALLEL REGION
 }

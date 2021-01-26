@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
     std::vector<float> upper(dim);
 
     std::mt19937_64 rgen(seed);
+    // XXX: check if rgen() is advanced across threads
 #pragma omp parallel for schedule(static)
     for (long i = 0; i < N; ++i) {
         lower[i] = 0.5 + rgen() % 100;
