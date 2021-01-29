@@ -84,7 +84,6 @@ struct TriMatrix
         T* _l = _lower.get();
         T* _u = _upper.get();
 
-#pragma omp parallel for simd shared(_l, _u) linear(i:1)
         for (ptrdiff_t i = 0; i < _t; ++i) {
             T s = (_l[i] + _u[i]) / 2.;
             _l[i] = s;
