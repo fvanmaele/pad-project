@@ -2,11 +2,11 @@
 #include <random>
 #include <iostream>
 #include <string>
-#include <algorithm>
-#include <vector>
 
+#include <cassert>
 #include <cstdlib>
 #include <getopt.h>
+#include <omp.h>
 
 int main(int argc, char** argv) {
     long N = 0;     // array size
@@ -36,14 +36,36 @@ int main(int argc, char** argv) {
     if (N <= 0) {
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
-    }
-    
-    std::vector<float> v(N);
-    std::mt19937_64 rgen(seed);
-    std::generate(v.begin(), v.end(), [&rgen]() {
-        return 0.5 + rgen() % 100;
-    });
+    }    
+    float* v = new float[N];
+    double sum = 0;
 
-    double res = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
-    std::cout << res << std::endl;
+    // Initialize pseudo-random number generator
+    std::mt19937_64 rgen(seed);
+
+#pragma omp parallel firstprivate(rgen)
+{
+    int nproc = omp_get_num_threads();
+    int proc_id = omp_get_thread_num();
+    
+    long block_size = N / nproc;
+    assert(N == block_size * nproc);
+    rgen.discard(block_size * proc_id); // advance pseudo-random number generator
+
+#pragma omp for schedule(static)
+    for (long i = 0; i < N; ++i)
+    {
+        v[i] = 0.5 + rgen() % 100;
+    } // barrier
+
+#pragma omp for simd schedule(static) reduction(+:sum)
+    for (long i = 0; i < N; ++i)
+    { 
+        sum += v[i];
+    } // barrier
+}
+// END PARALLEL REGION
+
+    std::cout << sum << std::endl;
+    delete[] v;
 }
