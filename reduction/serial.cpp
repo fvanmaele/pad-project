@@ -1,6 +1,6 @@
 
 #include <random>
-#include <ios>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -71,9 +71,9 @@ int main(int argc, char** argv) {
     if (bench) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << std::fixed << time << std::endl;
+        std::cout << std::fixed << std::setprecision(16) << time << std::endl;
     }
     if (write) {
-        std::cout << res << std::endl;
+        std::cout << std::defaultfloat << std::setprecision(12) << res << std::endl;
     }
 }

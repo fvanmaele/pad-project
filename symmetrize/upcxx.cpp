@@ -39,6 +39,9 @@ void dump_array_in_rank_order(std::ostream& stream, T array[], int64_t n, const 
             }
             dump_array(stream, array, n);
             stream << std::flush; // avoid mangling output
+            if (k == upcxx::rank_n() - 1) {
+                stream << std::endl;
+            }
         }
         upcxx::barrier();
     }
@@ -125,7 +128,7 @@ int main(int argc, char **argv)
 
     // Initialize upper and lower triangle with random values
     std::mt19937_64 rgen(seed);
-    rgen.discard(proc_id * triag_size * 2); // XXX: offset for pseudo-random generator
+    rgen.discard(proc_id * triag_size * 2);
 
     for (int64_t i = 0; i < triag_size; ++i) {
         lower[i] = 0.5 + rgen() % 100;
@@ -140,13 +143,16 @@ int main(int argc, char **argv)
     upcxx::barrier();
 
     if (write) {
-        std::ofstream ofs(file_path, std::ofstream::app);
         if (proc_id == 0) {
+            std::ofstream ofs(file_path, std::ofstream::trunc);
             ofs << "DIM: " << dim << "x" << dim << std::endl;
         };
-        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER: ");
+        upcxx::barrier();
+        std::ofstream ofs(file_path, std::ofstream::app);
+
+        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER (C-m): ");
         dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
-        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER: ");
+        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER (R-m): ");
     }
 
     timePoint<Clock> t;
@@ -170,12 +176,14 @@ int main(int argc, char **argv)
         std::cout << std::fixed << time << std::endl;
     }
 
-    // XXX: print dimension
     if (write) {
-        std::ofstream ofs(file_path_sym, std::ofstream::app);
         if (proc_id == 0) {
+            std::ofstream ofs(file_path_sym, std::ofstream::trunc);
             ofs << "DIM: " << dim << "x" << dim << std::endl;
         };
+        upcxx::barrier();
+        std::ofstream ofs(file_path_sym, std::ofstream::app);
+
         dump_array_in_rank_order(ofs, lower, triag_size, "LOWER (C-m): ");
         dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
         dump_array_in_rank_order(ofs, upper, triag_size, "UPPER (R-m): ");

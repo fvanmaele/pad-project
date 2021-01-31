@@ -1,4 +1,4 @@
-#include <ios>
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <cassert>
@@ -99,10 +99,6 @@ int main(int argc, char** argv)
     }
     upcxx::barrier();
 
-    if (write) {
-        std::cout << *psum_d << " (Rank " << proc_id << ")" << std::endl;
-    }
-
     // Reduce partial sums through dist_object::fetch (communication) on master process.
     // Alternative (with reduction in random order): upcxx::reduce_all() or reduce_one()
     if (proc_id == 0) {
@@ -118,10 +114,10 @@ int main(int argc, char** argv)
             // END TIMING - reduction
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
-            std::cout << std::fixed << time << std::endl;
+            std::cout << std::fixed << std::setprecision(16) << time << std::endl;
         }
         if (write) {
-            std::cout << res << std::endl;
+            std::cout << std::defaultfloat << std::setprecision(12) << res << std::endl;
         }
     }
     upcxx::delete_array(u_g);
