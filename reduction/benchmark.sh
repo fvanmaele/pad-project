@@ -21,7 +21,7 @@ bc_throughput() {
 }
 
 # Enabled benchmarks
-run_serial_media=0
+run_serial_media=1
 run_numa_media=1
 run_upcxx_media=1
 run_serial_knl=1

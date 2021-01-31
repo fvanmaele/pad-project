@@ -1,5 +1,6 @@
 
 #include <random>
+#include <ios>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -139,7 +140,7 @@ int main(int argc, char** argv) {
     {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << time << std::endl;
+        std::cout << std::fixed << time << std::endl;
     }
 }
 // END PARALLEL REGION

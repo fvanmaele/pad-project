@@ -1,5 +1,6 @@
 
 #include <random>
+#include <ios>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -119,7 +120,7 @@ int main(int argc, char** argv) {
     if (bench) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << time << std::endl;
+        std::cout << std::fixed << time << std::endl;
     }
 
     // Serialize new (symmetrized) matrix

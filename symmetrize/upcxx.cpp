@@ -1,5 +1,6 @@
-#include <iostream>
 #include <random>
+#include <ios>
+#include <iostream>
 #include <cassert>
 #include <utility>
 #include <string>
@@ -166,7 +167,7 @@ int main(int argc, char **argv)
     if (bench && proc_id == 0) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << time << std::endl;
+        std::cout << std::fixed << time << std::endl;
     }
 
     // XXX: print dimension
