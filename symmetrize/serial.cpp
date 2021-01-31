@@ -30,7 +30,7 @@ std::ostream& dump_vector(std::ostream& stream, const std::vector<T>& v, const c
 }
 
 int main(int argc, char** argv) {
-    long dim = 0;   // amount of rows/columns
+    int64_t dim = 0;   // amount of rows/columns
     int seed = 42;  // seed for pseudo-random generator
     bool write = false;
     bool bench = false;
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch(c) {
             case 'd':
-                dim = std::stol(optarg);
+                dim = std::stoll(optarg);
                 break;
             case 't':
                 seed = std::stoi(optarg);
@@ -70,8 +70,8 @@ int main(int argc, char** argv) {
         std::cerr << "positive dimension required (specify with --dim)" << std::endl;
         std::exit(1);
     }
-    const long triangle_size = dim*(dim - 1) / 2;
-    const long diag_size = dim;
+    const int64_t triangle_size = dim*(dim - 1) / 2;
+    const int64_t diag_size = dim;
     
     // For symmetrization of a square matrix, we consider three arrays:
     // - one holding the lower triangle, in col-major order;
@@ -84,11 +84,11 @@ int main(int argc, char** argv) {
     std::vector<float> diag(diag_size);
     
     std::mt19937_64 rgen(seed);
-    for (long i = 0; i < triangle_size; ++i) {
+    for (int64_t i = 0; i < triangle_size; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
     }
-    for (long i = 0; i < diag_size; ++i) {
+    for (int64_t i = 0; i < diag_size; ++i) {
         diag[i] = i + 1;
     }
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
     // Because lower and upper triangle and stored symmetricaly, we can symmetrize
     // the matrix as a SAXPY operation (over the lower and upper triangle) in a
     // single for loop.
-    for (long i = 0; i < triangle_size; ++i) {
+    for (int64_t i = 0; i < triangle_size; ++i) {
         double s = (lower[i] + upper[i]) / 2;
         lower[i] = s;
         upper[i] = s;

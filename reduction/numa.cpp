@@ -17,7 +17,7 @@ using timePoint = std::chrono::time_point<T>;
 
 
 int main(int argc, char** argv) {
-    long N = 0;     // array size
+    int64_t N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
     bool bench = false;
     bool write = false;
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch(c) {
             case 's':
-                N = std::stol(optarg);
+                N = std::stoll(optarg);
                 break;
             case 't':
                 seed = std::stoi(optarg);
@@ -66,12 +66,12 @@ int main(int argc, char** argv) {
     int nproc = omp_get_num_threads();
     int proc_id = omp_get_thread_num();
     
-    long block_size = N / nproc;
+    int64_t block_size = N / nproc;
     assert(N == block_size * nproc);
     rgen.discard(block_size * proc_id); // advance pseudo-random number generator
 
 #pragma omp for schedule(static)
-    for (long i = 0; i < N; ++i)
+    for (int64_t i = 0; i < N; ++i)
     {
         v[i] = 0.5 + rgen() % 100;
     } // barrier
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     }
 
 #pragma omp for simd schedule(static) reduction(+:sum)
-    for (long i = 0; i < N; ++i)
+    for (int64_t i = 0; i < N; ++i)
     { 
         sum += v[i];
     } // barrier

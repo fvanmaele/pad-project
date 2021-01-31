@@ -18,9 +18,9 @@ using timePoint = std::chrono::time_point<T>;
 
 
 template <typename T>
-std::ostream& dump_array(std::ostream& stream, T array[], long n) {
+std::ostream& dump_array(std::ostream& stream, T array[], int64_t n) {
     if (stream) {
-        for (long i = 0; i < n - 1; ++i) {
+        for (int64_t i = 0; i < n - 1; ++i) {
             stream << array[i] << " ";
         }
         stream << array[n - 1];
@@ -29,7 +29,7 @@ std::ostream& dump_array(std::ostream& stream, T array[], long n) {
 }
 
 template <typename T>
-void dump_array_in_rank_order(std::ostream& stream, T array[], long n, const char* label) {
+void dump_array_in_rank_order(std::ostream& stream, T array[], int64_t n, const char* label) {
     for (int k = 0; k < upcxx::rank_n(); ++k) {
         if (upcxx::rank_me() == k) {
             if (k == 0) {
@@ -46,7 +46,7 @@ void dump_array_in_rank_order(std::ostream& stream, T array[], long n, const cha
 
 int main(int argc, char **argv)
 {
-    long dim = 0;  // amount of rows/columns
+    int64_t dim = 0;  // amount of rows/columns
     int seed = 42; // seed for pseudo-random generator
     bool write = false;
     bool bench = false;
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch (c) {
         case 'd':
-            dim = std::stol(optarg);
+            dim = std::stoll(optarg);
             break;
         case 't':
             seed = std::stoi(optarg);
@@ -93,12 +93,12 @@ int main(int argc, char **argv)
     int proc_id = upcxx::rank_me();
 
     // Block size for each process
-    const long N = dim * (dim - 1) / 2;
-    const long triag_size = N / nproc;
+    const int64_t N = dim * (dim - 1) / 2;
+    const int64_t triag_size = N / nproc;
     assert(triag_size % 2 == 0);
     assert(N == triag_size * nproc);
 
-    const long diag_size = dim / nproc;
+    const int64_t diag_size = dim / nproc;
     assert(dim == diag_size * nproc);
 
     // For symmetrization of a square matrix, we consider three arrays:
@@ -127,14 +127,14 @@ int main(int argc, char **argv)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * triag_size * 2); // XXX: offset for pseudo-random generator
 
-    for (long i = 0; i < triag_size; ++i) {
+    for (int64_t i = 0; i < triag_size; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
     }
     
     // Initialize diagonal (optional)
-    long offset_diag = proc_id * diag_size; // offset for diagonal
-    for (long i = 0; i < diag_size; ++i) {
+    int64_t offset_diag = proc_id * diag_size; // offset for diagonal
+    for (int64_t i = 0; i < diag_size; ++i) {
         diag[i] = offset_diag + i + 1;
     }
     upcxx::barrier();
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     // Symmetrize matrix (SAXPY over lower and upper triangle). We only require 
     // a single for loop because lower and upper triangle are stored symmetrically 
     // (in col-major and row-major, respectively)
-    for (long i = 0; i < triag_size; ++i) {
+    for (int64_t i = 0; i < triag_size; ++i) {
         float s = (lower[i] + upper[i]) / 2.;
         lower[i] = s;
         upper[i] = s;

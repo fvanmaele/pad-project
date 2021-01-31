@@ -18,7 +18,7 @@ using timePoint = std::chrono::time_point<T>;
 
 int main(int argc, char** argv) 
 {
-    long N = 0;     // array size
+    int64_t N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
     bool bench = false;
     bool write = false;
@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch(c) {
             case 's':
-                N = std::stol(optarg);
+                N = std::stoll(optarg);
                 break;
             case 't':
                 seed = std::stoi(optarg);
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     int proc_id = upcxx::rank_me();
 
     // Block size for each process
-    const long block_size = N / nproc;
+    const int64_t block_size = N / nproc;
     assert(block_size % 2 == 0);
     assert(N == block_size * nproc);
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     // across the full array)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * block_size);
-    for (long i = 0; i < block_size; ++i) {
+    for (int64_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     upcxx::barrier();
 
     // Compute partial sums and ensure they are available
-    for (long i = 0; i < block_size; ++i) {
+    for (int64_t i = 0; i < block_size; ++i) {
         *psum_d += u[i];
     }
     upcxx::barrier();

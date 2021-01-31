@@ -7,7 +7,7 @@ type upcxx
 gpp_flags=(-Wall -Wextra -Wpedantic -O3 -std=c++17)
 
 dims=()
-for k in {5..14}; do
+for k in {5..16}; do
     i=$((1 << k))
     dims+=("$i")
 done
@@ -61,6 +61,9 @@ if (( run_numa_media )); then
     for nproc in 2 4 8; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
@@ -80,6 +83,9 @@ if (( run_upcxx_media )); then
     for nproc in 2 4; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
@@ -120,6 +126,9 @@ if (( run_numa_knl )); then
     for nproc in 2 4 8 16 32 64; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
@@ -139,6 +148,9 @@ if (( run_upcxx_knl )); then
     for nproc in 2 4 8 16 32 64; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
@@ -162,6 +174,9 @@ if (( run_upcxx_media_cluster )); then
     for nproc in 4 8 16; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
                 upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
@@ -187,6 +202,9 @@ if (( run_upcxx_knl_cluster )); then
     for nproc in 4 8 16 32 64; do
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${dims[@]}"; do
+            if ! (( n * (n-1) / 2 / nproc % 2 == 0 )); then
+                continue
+            fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
                 upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
