@@ -3,12 +3,18 @@
 #include <cassert>
 #include <utility>
 #include <string>
-#include <sstream>
 #include <fstream>
+#include <chrono>
 
 #include <cstdlib>
 #include <getopt.h>
 #include <upcxx/upcxx.hpp>
+
+using Clock = std::chrono::high_resolution_clock;
+using Duration = std::chrono::duration<double>;
+template <typename T>
+using timePoint = std::chrono::time_point<T>;
+
 
 template <typename T>
 std::ostream& dump_array(std::ostream& stream, T array[], long n) {
@@ -32,10 +38,6 @@ void dump_array_in_rank_order(std::ostream& stream, T array[], long n, const cha
             }
             dump_array(stream, array, n);
             stream << std::flush; // avoid mangling output
-            
-            if (k == upcxx::rank_n() - 1) {
-                std::cout << std::endl;
-            }
         }
         upcxx::barrier();
     }
@@ -46,12 +48,17 @@ int main(int argc, char **argv)
     long dim = 0;  // amount of rows/columns
     int seed = 42; // seed for pseudo-random generator
     bool write = false;
+    bool bench = false;
+    const char* file_path = "upcxx_matrix.txt";
+    const char* file_path_sym = "upcxx_matrix_symmetrized.txt";
 
     struct option long_options[] = {
-        {"dim", required_argument, NULL, 'd'},
-        {"seed", optional_argument, NULL, 't'},
-        {"write", optional_argument, NULL, 'w'},
-        {NULL, 0, NULL, 0}};
+        { "dim", required_argument, NULL, 'd' },
+        { "seed", required_argument, NULL, 't' },
+        { "write", no_argument, NULL, 'w' },
+        { "bench", no_argument, NULL, 'b' },
+        { NULL, 0, NULL, 0 }
+    };
 
     int c;
     while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
@@ -65,6 +72,9 @@ int main(int argc, char **argv)
         case 'w':
             write = true;
             break;
+        case 'b':
+            bench = true;
+            break;
         case '?':
             break;
         default:
@@ -72,7 +82,7 @@ int main(int argc, char **argv)
         }
     }
     if (dim <= 0) {
-        std::cerr << "a positive array size is required (specify with --size)" << std::endl;
+        std::cerr << "positive dimension required (specify with --dim)" << std::endl;
         std::exit(1);
     }
     
@@ -89,7 +99,6 @@ int main(int argc, char **argv)
 
     const long diag_size = dim / nproc;
     assert(dim == diag_size * nproc);
-
 
     // For symmetrization of a square matrix, we consider three arrays:
     // - one holding the lower triangle, in col-major order;
@@ -129,16 +138,24 @@ int main(int argc, char **argv)
     }
     upcxx::barrier();
 
-    // XXX: serialize matrix with a single loop over process ranks? (std::stringstream)
-    dump_array_in_rank_order(std::cout, lower, triag_size, "LOWER: ");
-    dump_array_in_rank_order(std::cout, diag, diag_size, "DIAG: ");
-    dump_array_in_rank_order(std::cout, upper, triag_size, "UPPER: ");
+    if (write) {
+        std::ofstream ofs(file_path, std::ofstream::app);
+        if (proc_id == 0) {
+            ofs << "DIM: " << dim << "x" << dim << std::endl;
+        };
+        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER: ");
+        dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
+        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER: ");
+    }
 
+    timePoint<Clock> t;
+    if (bench && proc_id == 0) { // measure on single thread
+        t = Clock::now();
+    }
 
     // Symmetrize matrix (SAXPY over lower and upper triangle). We only require 
     // a single for loop because lower and upper triangle are stored symmetrically 
     // (in col-major and row-major, respectively)
-    // XXX: we want to benchmark this block (with and without dist_object?) -> use upcxx::promise()
     for (long i = 0; i < triag_size; ++i) {
         float s = (lower[i] + upper[i]) / 2.;
         lower[i] = s;
@@ -146,11 +163,22 @@ int main(int argc, char **argv)
     }
     upcxx::barrier(); // ensure symmetrization is complete
     
-    if (proc_id == 0) std::cout << std::endl;
-    dump_array_in_rank_order(std::cout, lower, triag_size, "LOWER (C-m): ");
-    dump_array_in_rank_order(std::cout, diag, diag_size, "DIAG: ");
-    dump_array_in_rank_order(std::cout, upper, triag_size, "UPPER (R-m): ");
+    if (bench && proc_id == 0) {
+        Duration d = Clock::now() - t;
+        double time = d.count(); // time in seconds
+        std::cout << time << std::endl;
+    }
 
+    // XXX: print dimension
+    if (write) {
+        std::ofstream ofs(file_path_sym, std::ofstream::app);
+        if (proc_id == 0) {
+            ofs << "DIM: " << dim << "x" << dim << std::endl;
+        };
+        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER (C-m): ");
+        dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
+        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER (R-m): ");
+    }
 
     upcxx::delete_array(lower_g); // XXX: proper way to use with dist_object?
     upcxx::delete_array(upper_g);

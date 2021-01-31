@@ -4,17 +4,28 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <chrono>
 
 #include <cstdlib>
 #include <getopt.h>
 
+using Clock = std::chrono::high_resolution_clock;
+using Duration = std::chrono::duration<double>;
+template <typename T>
+using timePoint = std::chrono::time_point<T>;
+
+
 int main(int argc, char** argv) {
     long N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
+    bool bench = false;
+    bool write = false;
 
     struct option long_options[] = {
         { "size", required_argument, NULL, 's' },
-        { "seed", optional_argument, NULL, 't' },
+        { "seed", required_argument, NULL, 't' },
+        { "bench", no_argument, NULL, 'b' },
+        { "write", no_argument, NULL, 'w' },
         { NULL, 0, NULL, 0 }
     };
 
@@ -26,6 +37,12 @@ int main(int argc, char** argv) {
                 break;
             case 't':
                 seed = std::stoi(optarg);
+                break;
+            case 'b':
+                bench = true;
+                break;
+            case 'w':
+                write = true;
                 break;
             case '?':
                 break;
@@ -44,6 +61,18 @@ int main(int argc, char** argv) {
         return 0.5 + rgen() % 100;
     });
 
+    timePoint<Clock> t; 
+    if (bench) {
+        t = Clock::now();
+    }
     double res = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
-    std::cout << res << std::endl;
+
+    if (bench) {
+        Duration d = Clock::now() - t;
+        double time = d.count(); // time in seconds
+        std::cout << time << std::endl;
+    }
+    if (write) {
+        std::cout << res << std::endl;
+    }
 }

@@ -2,19 +2,30 @@
 #include <random>
 #include <iostream>
 #include <string>
+#include <chrono>
 
 #include <cassert>
 #include <cstdlib>
 #include <getopt.h>
 #include <omp.h>
 
+using Clock = std::chrono::high_resolution_clock;
+using Duration = std::chrono::duration<double>;
+template <typename T>
+using timePoint = std::chrono::time_point<T>;
+
+
 int main(int argc, char** argv) {
     long N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
+    bool bench = false;
+    bool write = false;
 
     struct option long_options[] = {
         { "size", required_argument, NULL, 's' },
-        { "seed", optional_argument, NULL, 't' },
+        { "seed", required_argument, NULL, 't' },
+        { "bench", no_argument, NULL, 'b' },
+        { "write", no_argument, NULL, 'w' },
         { NULL, 0, NULL, 0 }
     };
 
@@ -26,6 +37,12 @@ int main(int argc, char** argv) {
                 break;
             case 't':
                 seed = std::stoi(optarg);
+                break;
+            case 'b':
+                bench = true;
+                break;
+            case 'w':
+                write = true;
                 break;
             case '?':
                 break;
@@ -58,14 +75,27 @@ int main(int argc, char** argv) {
         v[i] = 0.5 + rgen() % 100;
     } // barrier
 
+    timePoint<Clock> t;
+    if (bench && omp_get_thread_num() == 0) // measure time on a single thread
+    {
+        t = Clock::now();
+    }
+
 #pragma omp for simd schedule(static) reduction(+:sum)
     for (long i = 0; i < N; ++i)
     { 
         sum += v[i];
     } // barrier
+
+    if (bench && omp_get_thread_num() == 0) {
+        Duration d = Clock::now() - t;
+        double time = d.count(); // time in seconds
+        std::cout << time << std::endl;
+    }
 }
 // END PARALLEL REGION
-
-    std::cout << sum << std::endl;
+    if (write) {
+        std::cout << sum << std::endl;
+    }
     delete[] v;
 }

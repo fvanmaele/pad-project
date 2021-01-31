@@ -3,19 +3,30 @@
 #include <cassert>
 #include <utility>
 #include <string>
+#include <chrono>
 
 #include <cstdlib>
 #include <getopt.h>
 #include <upcxx/upcxx.hpp>
 
+using Clock = std::chrono::high_resolution_clock;
+using Duration = std::chrono::duration<double>;
+template <typename T>
+using timePoint = std::chrono::time_point<T>;
+
+
 int main(int argc, char** argv) 
 {
     long N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
+    bool bench = false;
+    bool write = false;
 
     struct option long_options[] = {
         { "size", required_argument, NULL, 's' },
-        { "seed", optional_argument, NULL, 't' },
+        { "seed", required_argument, NULL, 't' },
+        { "bench", no_argument, NULL, 'b' },
+        { "write", no_argument, NULL, 'w' },
         { NULL, 0, NULL, 0 }
     };
 
@@ -28,6 +39,12 @@ int main(int argc, char** argv)
             case 't':
                 seed = std::stoi(optarg);
                 break;
+            case 'b':
+                bench = true;
+                break;
+            case 'w':
+                write = true;
+                break;
             case '?':
                 break;
             default:
@@ -38,7 +55,6 @@ int main(int argc, char** argv)
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
     }
-
     // BEGIN PARALLEL REGION
     upcxx::init();
     int nproc = upcxx::rank_n();
@@ -62,19 +78,29 @@ int main(int argc, char** argv)
         u[i] = 0.5 + rgen() % 100;
     }
 
+    // BEGIN TIMING - reduction
+    timePoint<Clock> t{};
+    if (proc_id == 0 && bench) {
+        // Timing is done on the master process only (as this is where the final reduction
+        // of partial sums will take place)
+        t = Clock::now();
+    }
+    
     // Create a reduction value for each process (universal name, local value).
     // Each local value can be accessed with operator* or operator->, but there
     // is no guarantee that every local value is constructed after the call.
     upcxx::dist_object<double> psum_d(0);
     upcxx::barrier();
 
+    // Compute partial sums and ensure they are available
     for (long i = 0; i < block_size; ++i) {
         *psum_d += u[i];
     }
-
-    // Ensure all partial sums are available
     upcxx::barrier();
-    std::cout << *psum_d << " (Rank " << proc_id << ")" << std::endl;
+
+    if (write) {
+        std::cout << *psum_d << " (Rank " << proc_id << ")" << std::endl;
+    }
 
     // Reduce partial sums through dist_object::fetch (communication) on master process.
     // Alternative (with reduction in random order): upcxx::reduce_all() or reduce_one()
@@ -87,7 +113,15 @@ int main(int argc, char** argv)
             double psum = psum_d.fetch(k).wait();
             res += psum;
         }
-        std::cout << res << std::endl;
+        if (bench) {
+            // END TIMING - reduction
+            Duration d = Clock::now() - t;
+            double time = d.count(); // time in seconds
+            std::cout << time << std::endl;
+        }
+        if (write) {
+            std::cout << res << std::endl;
+        }
     }
     upcxx::delete_array(u_g);
 

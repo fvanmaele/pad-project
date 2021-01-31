@@ -4,9 +4,16 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <chrono>
 
 #include <cstdlib>
 #include <getopt.h>
+
+using Clock = std::chrono::high_resolution_clock;
+using Duration = std::chrono::duration<double>;
+template <typename T>
+using timePoint = std::chrono::time_point<T>;
+
 
 template <typename T>
 std::ostream& dump_vector(std::ostream& stream, const std::vector<T>& v, const char* label) {
@@ -25,11 +32,15 @@ int main(int argc, char** argv) {
     long dim = 0;   // amount of rows/columns
     int seed = 42;  // seed for pseudo-random generator
     bool write = false;
+    bool bench = false;
+    const char* file_path = "serial_matrix.txt";
+    const char* file_path_sym = "serial_matrix_symmetrized.txt";
 
     struct option long_options[] = {
         { "dim",  required_argument, NULL, 'd' },
-        { "seed", optional_argument, NULL, 't' },
-        { "write", optional_argument, NULL, 'w'},
+        { "seed", required_argument, NULL, 't' },
+        { "write", no_argument, NULL, 'w'},
+        { "bench", no_argument, NULL, 'b'},
         { NULL, 0, NULL, 0 }
     };
 
@@ -45,6 +56,9 @@ int main(int argc, char** argv) {
             case 'w':
                 write = true;
                 break;
+            case 'b':
+                bench = true;
+                break;
             case '?':
                 break;
             default:
@@ -52,7 +66,7 @@ int main(int argc, char** argv) {
         }
     }
     if (dim <= 0) {
-        std::cerr << "a positive dimension is required (specify with --dim)" << std::endl;
+        std::cerr << "positive dimension required (specify with --dim)" << std::endl;
         std::exit(1);
     }
     const long triangle_size = dim*(dim - 1) / 2;
@@ -79,12 +93,18 @@ int main(int argc, char** argv) {
 
     // Seralize original matrix
     if (write) {
-        if (std::ofstream stream{"matrix.txt"}; stream) {
+        std::ofstream stream{file_path};
+        if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
             dump_vector(stream, lower, "LOWER (C-m): ");
             dump_vector(stream, diag, "DIAG: ");
             dump_vector(stream, upper, "UPPER (R-m): ");
         }
+    }
+
+    timePoint<Clock> t;
+    if (bench) {
+        t = Clock::now();
     }
 
     // Because lower and upper triangle and stored symmetricaly, we can symmetrize
@@ -96,9 +116,16 @@ int main(int argc, char** argv) {
         upper[i] = s;
     }
 
+    if (bench) {
+        Duration d = Clock::now() - t;
+        double time = d.count(); // time in seconds
+        std::cout << time << std::endl;
+    }
+
     // Serialize new (symmetrized) matrix
     if (write) {
-        if (std::ofstream stream{"matrix_symmetrized.txt"}; stream) {
+        std::ofstream stream{file_path_sym};
+        if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
             dump_vector(stream, lower, "LOWER (C-m): ");
             dump_vector(stream, diag, "DIAG: ");
