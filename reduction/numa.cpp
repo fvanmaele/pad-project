@@ -1,5 +1,6 @@
 
 #include <random>
+#include <ios>
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -90,7 +91,7 @@ int main(int argc, char** argv) {
     if (bench && omp_get_thread_num() == 0) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << time << std::endl;
+        std::cout << std::fixed << time << std::endl;
     }
 }
 // END PARALLEL REGION

@@ -1,3 +1,4 @@
+#include <ios>
 #include <iostream>
 #include <random>
 #include <cassert>
@@ -117,7 +118,7 @@ int main(int argc, char** argv)
             // END TIMING - reduction
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
-            std::cout << time << std::endl;
+            std::cout << std::fixed << time << std::endl;
         }
         if (write) {
             std::cout << res << std::endl;
