@@ -7,7 +7,7 @@ type upcxx
 gpp_flags=(-Wall -Wextra -Wpedantic -O3 -std=c++17)
 
 dims=()
-for k in {5..16}; do
+for k in {5..14}; do
     i=$((1 << k))
     dims+=("$i")
 done
