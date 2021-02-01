@@ -74,7 +74,7 @@ fi
 # UPCXX, mp-media1 (UPCXX_NETWORK=smp, processes: 2, 4, 8)
 if (( run_upcxx_media )); then
     srv='mp-media1'
-    progn=reduction-skl-shared
+    progn=reduction-skl-shared-upcxx
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 2 4 8; do
@@ -133,7 +133,7 @@ fi
 # UPCXX, mp-knl1 (UPCXX_NETWORK=smp, processes: 2, 4, 8, 16, 32, 64)
 if (( run_upcxx_knl )); then
     srv='mp-knl1'
-    progn=reduction-knl-shared
+    progn=reduction-knl-shared-upcxx
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 2 4 8 16 32 64; do
@@ -156,7 +156,7 @@ fi
 # UPCXX, mp-media[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16)
 if (( run_upcxx_media_cluster )); then
     srv='mp-media[1-4]'
-    progn=reduction-skl-dist
+    progn=reduction-skl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16; do
@@ -181,7 +181,7 @@ fi
 # UPCXX, mp-knl[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16, 32, 64)
 if (( run_upcxx_knl_cluster )); then
     srv='mp-knl[1-4]'
-    progn=reduction-knl-dist
+    progn=reduction-knl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16 32 64; do

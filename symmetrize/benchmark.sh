@@ -52,7 +52,7 @@ if (( run_serial_media )); then
 fi
 
 
-# NUMA, mp-media1 (OMP_NUM_THREADS: 2, 4, 8)
+# OpenMP, mp-media1 (OMP_NUM_THREADS: 2, 4, 8)
 if (( run_openmp_media )); then
     srv='mp-media1'
     progn=symmetrize-skl-shared-openmp
@@ -77,7 +77,7 @@ fi
 # UPCXX, mp-media1 (UPCXX_NETWORK=smp, processes: 2, 4)
 if (( run_upcxx_media )); then
     srv='mp-media1'
-    progn=symmetrize-skl-shared
+    progn=symmetrize-skl-shared-upcxx
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 2 4; do
@@ -117,7 +117,7 @@ if (( run_serial_knl )); then
     done >> "$progn"-1.csv
 fi
 
-# NUMA, mp-knl1 (OMP_NUM_THREADS: 2, 4, 8, 16, 32, 64)
+# OpenMP, mp-knl1 (OMP_NUM_THREADS: 2, 4, 8, 16, 32, 64)
 if (( run_openmp_knl )); then
     srv='mp-knl1'
     progn=symmetrize-knl-shared-openmp
@@ -142,7 +142,7 @@ fi
 # UPCXX, mp-knl1 (UPCXX_NETWORK=smp, processes: 2, 4, 8, 16, 32, 64)
 if (( run_upcxx_knl )); then
     srv='mp-knl1'
-    progn=symmetrize-knl-shared
+    progn=symmetrize-knl-shared-upcxx
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 2 4 8 16 32 64; do
@@ -168,7 +168,7 @@ fi
 # UPCXX, mp-media[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16)
 if (( run_upcxx_media_cluster )); then
     srv='mp-media[1-4]'
-    progn=symmetrize-skl-dist
+    progn=symmetrize-skl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16; do
@@ -196,7 +196,7 @@ fi
 # UPCXX, mp-knl[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16, 32, 64)
 if (( run_upcxx_knl_cluster )); then
     srv='mp-knl[1-4]'
-    progn=symmetrize-knl-dist
+    progn=symmetrize-knl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16 32 64; do
