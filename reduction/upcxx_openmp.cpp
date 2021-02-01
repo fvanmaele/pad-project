@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <getopt.h>
+#include <omp.h>
 #include <upcxx/upcxx.hpp>
 
 using Clock = std::chrono::high_resolution_clock;
@@ -75,6 +76,8 @@ int main(int argc, char** argv)
     // across the full array)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * block_size);
+    // XXX: discard rgen according to omp thread number 
+#pragma omp parallel for simd schedule(static) firstprivate(rgen)
     for (int64_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
@@ -92,6 +95,7 @@ int main(int argc, char** argv)
     }
  
     // Compute partial sums and ensure they are available
+#pragma omp parallel for simd reduction(+:psum)
     for (int64_t i = 0; i < block_size; ++i) {
         psum += u[i];
     }
@@ -105,10 +109,11 @@ int main(int argc, char** argv)
             // END TIMING - reduction
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
-            std::cout << std::fixed << std::setprecision(16) << time << std::endl;
+            double throughput = sizeof(float) * N * 1e-9 / time; // throughput in GB/s
+            std::cout << N << "," << time << "," << throughput << std::endl;
         }
         if (write) {
-            std::cout << std::defaultfloat << std::setprecision(12) << sum << std::endl;
+            std::cout << sum << std::endl;
         }
     }
     upcxx::delete_array(u_g);
