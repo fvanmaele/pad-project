@@ -34,8 +34,8 @@ int main(int argc, char** argv) {
     int seed = 42;  // seed for pseudo-random generator
     bool write = false;
     bool bench = false;
-    const char* file_path = "numa_matrix.txt";
-    const char* file_path_sym = "numa_matrix_symmetrized.txt";
+    const char* file_path = "openmp_matrix.txt";
+    const char* file_path_sym = "openmp_matrix_symmetrized.txt";
 
     struct option long_options[] = {
         { "dim",  required_argument, NULL, 'd' },

@@ -1,7 +1,7 @@
 
 add_executable(reduction-serial "serial.cpp")
 
-add_executable(reduction-numa "numa.cpp")
+add_executable(reduction-openmp "openmp.cpp")
 target_link_libraries(reduction-numa PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(reduction-upcxx "upcxx.cpp")

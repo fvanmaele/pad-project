@@ -13,7 +13,7 @@ for k in {15..30}; do
 done
 
 (set -x; g++ "${gpp_flags[@]}" serial.cpp -o test-serial)
-(set -x; g++ "${gpp_flags[@]}" -fopenmp numa.cpp -o test-numa)
+(set -x; g++ "${gpp_flags[@]}" -fopenmp openmp.cpp -o test-openmp)
 (set -x; upcxx "${gpp_flags[@]}" upcxx.cpp -o test-upcxx)
 
 seed=42
@@ -23,7 +23,7 @@ for n in "${sizes[@]}"; do
 
     for i in $(seq 1 "$num_repeats"); do
         printf >&2 'Testing parallel vs. serial reduction, size %s, iteration %s\n' "$n" "$i"
-        sum_2=$(OMP_NUM_THREADS=8 ./test-numa --size "$n" --seed="$seed" --write)
+        sum_2=$(OMP_NUM_THREADS=8 ./test-openmp --size "$n" --seed="$seed" --write)
         sum_3=$(upcxx-run -n 8 -shared-heap 50% ./test-upcxx --size "$n" --seed="$seed" --write)
 
         [[ $sum_2 == $sum_1 ]] || { # assumes implicit rounding by output stream
