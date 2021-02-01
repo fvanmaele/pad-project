@@ -1,0 +1,106 @@
+g++ is /opt/asc/pub/epochs/2020/spack/opt/spack/linux-centos7-x86_64/gcc-4.8.5/gcc-10.2.0-37ay37fyiok2apylvtc5kej22ov4qrqu/bin/g++
+upcxx-run is /home/nfs/fvanmaele/personalSoftware/bin/upcxx-run
+upcxx is /home/nfs/fvanmaele/personalSoftware/bin/upcxx
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 1
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 2
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 3
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 4
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 5
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 6
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 7
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 8
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 9
+Testing parallel vs. serial symmetrization, dimension 32x32, iteration 10
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 1
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 2
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 3
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 4
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 5
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 6
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 7
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 8
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 9
+Testing parallel vs. serial symmetrization, dimension 64x64, iteration 10
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 1
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 2
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 3
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 4
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 5
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 6
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 7
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 8
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 9
+Testing parallel vs. serial symmetrization, dimension 128x128, iteration 10
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 1
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 2
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 3
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 4
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 5
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 6
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 7
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 8
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 9
+Testing parallel vs. serial symmetrization, dimension 256x256, iteration 10
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 1
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 2
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 3
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 4
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 5
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 6
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 7
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 8
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 9
+Testing parallel vs. serial symmetrization, dimension 512x512, iteration 10
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 1
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 2
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 3
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 4
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 5
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 6
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 7
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 8
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 9
+Testing parallel vs. serial symmetrization, dimension 1024x1024, iteration 10
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 1
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 2
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 3
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 4
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 5
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 6
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 7
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 8
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 9
+Testing parallel vs. serial symmetrization, dimension 2048x2048, iteration 10
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 1
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 2
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 3
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 4
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 5
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 6
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 7
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 8
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 9
+Testing parallel vs. serial symmetrization, dimension 4096x4096, iteration 10
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 1
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 2
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 3
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 4
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 5
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 6
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 7
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 8
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 9
+Testing parallel vs. serial symmetrization, dimension 8192x8192, iteration 10
+Testing parallel vs. serial symmetrization, dimension 16384x16384, iteration 1
+srun: Force Terminated job 1167627
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 1167627.0 ON mp-media1 CANCELLED AT 2021-02-01T01:14:23 DUE TO TIME LIMIT ***
+*** Caught a signal (proc 2): SIGTERM(15)
+*** Caught a signal (proc 7): SIGTERM(15)
+*** Caught a signal (proc 5): SIGTERM(15)
+*** Caught a signal (proc 4): SIGTERM(15)
+*** Caught a signal (proc 1): SIGTERM(15)
+*** Caught a signal (proc 6): SIGTERM(15)
+*** Caught a signal (proc 0): SIGTERM(15)
+*** Caught a signal (proc 3): SIGTERM(15)
+srun: error: mp-media1: task 0: Terminated
