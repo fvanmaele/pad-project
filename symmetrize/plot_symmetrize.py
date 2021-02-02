@@ -42,10 +42,10 @@ def plot_df(df1,df2):
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.
 #	Adjust the axes settings as needed (set_ax).
-	skl_shared = 'symmetrize-skl-shared.csv'
-	knl_shared = 'symmetrize-knl-shared.csv'
-	skl_dist = 'symmetrize-skl-dist.csv'
-	knl_dist = 'symmetrize-knl-dist.csv'
+	skl_shared = 'csv/symmetrize-skl-shared-upcxx-8.csv'
+	knl_shared = 'csv/symmetrize-knl-shared-upcxx-32.csv'
+	skl_dist = 'csv/symmetrize-skl-dist-upcxx-8.csv'
+	knl_dist = 'csv/symmetrize-knl-dist-upcxx-32.csv'
 
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')

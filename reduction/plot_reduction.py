@@ -19,7 +19,7 @@ def set_ax(ax,min,max):
                 a.set_ylabel('Throughput [GB/s]',fontsize=15)
                 a.set_xlim(14,31)
                 a.set_xticks(np.arange(15,31))
-                a.set_ylim(min,max+500)
+                a.set_ylim(min,max+100)
                 a.set_yscale('log')
                 a.legend(loc=2,prop={'size': 12})
                 if i == 0:
@@ -41,9 +41,9 @@ if __name__ == "__main__":
 #       Usage: Update the path to the CSV files accordingly.
 #       Adjust the axes settings as needed (set_ax).
         skl_shared = 'csv/reduction-skl-shared-upcxx-8.csv'
-        knl_shared = 'csv/reduction-knl-shared-upcxx-64.csv'
-        skl_dist = 'csv/reduction-skl-dist-upcxx-16.csv'
-        knl_dist = 'csv/reduction-knl-dist-upcxx-64.csv'
+        knl_shared = 'csv/reduction-knl-shared-upcxx-32.csv'
+        skl_dist = 'csv/reduction-skl-dist-upcxx-8.csv'
+        knl_dist = 'csv/reduction-knl-dist-upcxx-32.csv'
 
         #skl_serial = 'csv/reduction-skl-serial.csv'
         #knl_serial = 'csv/reduction-knl-serial.csv'
