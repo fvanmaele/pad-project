@@ -1,4 +1,4 @@
-#include <iomanip>
+#include <ios>
 #include <iostream>
 #include <random>
 #include <cassert>
@@ -79,10 +79,6 @@ int main(int argc, char** argv)
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // Create a reduction value for each process. These represent the partial sums
-    // which will be reduced later with upcxx::reduce_one().
-    double psum(0);
-
     // BEGIN TIMING - reduction
     timePoint<Clock> t{};
     if (proc_id == 0 && bench) {
@@ -90,25 +86,38 @@ int main(int argc, char** argv)
         // of partial sums will take place)
         t = Clock::now();
     }
- 
+    
+    // Create a reduction value for each process (universal name, local value).
+    // Each local value can be accessed with operator* or operator->, but there
+    // is no guarantee that every local value is constructed after the call.
+    upcxx::dist_object<double> psum_d(0);
+    upcxx::barrier();
+
     // Compute partial sums and ensure they are available
     for (int64_t i = 0; i < block_size; ++i) {
-        psum += u[i];
+        *psum_d += u[i];
     }
     upcxx::barrier();
 
-    // Reduce partial sums with upcxx::reduce_one() (in random order, result available on process 0).
-    double sum = upcxx::reduce_one(psum, upcxx::op_fast_add, 0).wait();
-
+    // Reduce partial sums through dist_object::fetch (communication) on master process.
+    // Alternative (with reduction in random order): upcxx::reduce_all() or reduce_one()
     if (proc_id == 0) {
+        // partial sum for process 0
+        double res(*psum_d);
+
+        // partial sums for remaining processes (in ascending order)
+        for (int k = 1; k < upcxx::rank_n(); ++k) {
+            double psum = psum_d.fetch(k).wait();
+            res += psum;
+        }
         if (bench) {
             // END TIMING - reduction
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
-            std::cout << std::fixed << std::setprecision(16) << time << std::endl;
+            std::cout << std::fixed << time << std::endl;
         }
         if (write) {
-            std::cout << std::defaultfloat << std::setprecision(12) << sum << std::endl;
+            std::cout << std::defaultfloat << res << std::endl;
         }
     }
     upcxx::delete_array(u_g);

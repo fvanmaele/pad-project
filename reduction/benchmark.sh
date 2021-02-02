@@ -40,7 +40,7 @@ if (( run_serial_media )); then
     progn=reduction-skl-serial
     (set -x; g++ "${gpp_flags[@]}" -march=skylake serial.cpp -o "$progn")
 
-    printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn"-1.csv
+    printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn".csv
     for n in "${sizes[@]}"; do
         printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" 1 "$n"
         seconds=$(time srun -w "$srv" ./"$progn" --size "$n" --bench) # `time` writes to stderr
@@ -52,7 +52,7 @@ if (( run_serial_media )); then
 fi
 
 
-# NUMA, mp-media1 (OMP_NUM_THREADS: 2, 4, 8)
+# OpenMP, mp-media1 (OMP_NUM_THREADS: 2, 4, 8)
 if (( run_openmp_media )); then
     srv='mp-media1'
     progn=reduction-skl-shared-openmp
@@ -81,7 +81,7 @@ if (( run_upcxx_media )); then
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${sizes[@]}"; do
             printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" "$nproc" "$n"
-            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --size "$n" --bench)
+            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" --size "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$n" "$seconds" "$throughput"
@@ -100,7 +100,7 @@ if (( run_serial_knl )); then
     progn=reduction-knl-serial
     (set -x; g++ "${gpp_flags[@]}" -march=knl serial.cpp -o "$progn")
 
-    printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn"-1.csv
+    printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn".csv
     for n in "${sizes[@]}"; do
         printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" 1 "$n"
         seconds=$(time srun -w "$srv" ./"$progn" --size "$n" --bench)
@@ -140,7 +140,7 @@ if (( run_upcxx_knl )); then
         printf 'Size,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for n in "${sizes[@]}"; do
             printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" "$nproc" "$n"
-            seconds=$(time upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --size "$n" --bench)
+            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" --size "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$n" "$seconds" "$throughput"
@@ -164,7 +164,7 @@ if (( run_upcxx_media_cluster )); then
         for n in "${sizes[@]}"; do
             printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" "$nproc" "$n"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-                upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --size "$n" --bench)
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" --size "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$n" "$seconds" "$throughput"
@@ -189,7 +189,7 @@ if (( run_upcxx_knl_cluster )); then
         for n in "${sizes[@]}"; do
             printf >&2 'Benchmarking %s (rank %s, data size %s)\n' "$progn" "$nproc" "$n"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-                upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --size "$n" --bench)
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" --size "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$n" "$seconds" "$throughput"

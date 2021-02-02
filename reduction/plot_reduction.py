@@ -32,8 +32,8 @@ def plot_df(df1,df2):
         global_max,global_min = find_limits(df1,df2)
         sns.set_style("white")
         fig, axes = plt.subplots(1,2,sharex=True,figsize=(15,7))
-        sns.lineplot(ax=axes[0],data=df1,x='Size',y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
-        sns.lineplot(ax=axes[1],data=df2,x='Size',y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
+        sns.lineplot(ax=axes[0],data=df1,x=[x for x in range(15,31)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
+        sns.lineplot(ax=axes[1],data=df2,x=[x for x in range(15,31)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
         set_ax(axes,global_min,global_max)
         fig.savefig('reduction.pdf')
 
@@ -41,9 +41,9 @@ if __name__ == "__main__":
 #       Usage: Update the path to the CSV files accordingly.
 #       Adjust the axes settings as needed (set_ax).
         skl_shared = 'csv/reduction-skl-shared-upcxx-8.csv'
-        knl_shared = 'csv/reduction-knl-shared-upcxx-16.csv'
+        knl_shared = 'csv/reduction-knl-shared-upcxx-64.csv'
         skl_dist = 'csv/reduction-skl-dist-upcxx-16.csv'
-        knl_dist = 'csv/reduction-knl-dist-upcxx-16.csv'
+        knl_dist = 'csv/reduction-knl-dist-upcxx-64.csv'
 
         #skl_serial = 'csv/reduction-skl-serial.csv'
         #knl_serial = 'csv/reduction-knl-serial.csv'
