@@ -2,7 +2,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(pad-project LANGUAGES CXX)
 
-find_package(Catch2 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP 4.0 REQUIRED)
@@ -13,7 +12,7 @@ if (NOT DEFINED GCC_ARCH)
     set(GCC_ARCH "native")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 option(UPCXX_VERBOSE ON)
 if (NOT DEFINED ENV{UPCXX_INSTALL})
     set(ENV{UPCXX_INSTALL} "/usr/local/upcxx")  # default install path
