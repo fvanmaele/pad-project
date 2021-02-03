@@ -37,15 +37,15 @@ def plot_df(df1,df2):
 	sns.lineplot(ax=axes[0],data=df1,x='X',y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
 	sns.lineplot(ax=axes[1],data=df2,x='X',y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
 	set_ax(axes,global_min,global_max)
-	fig.savefig('symmetrize.pdf')
+	fig.savefig('symmetrize_openmp_shared.pdf')
 
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.
 #	Adjust the axes settings as needed (set_ax).
 	skl_shared = 'csv/symmetrize-skl-shared-upcxx-8.csv'
-	knl_shared = 'csv/symmetrize-knl-shared-upcxx-32.csv'
-	skl_dist = 'csv/symmetrize-skl-dist-upcxx-8.csv'
-	knl_dist = 'csv/symmetrize-knl-dist-upcxx-32.csv'
+	knl_shared = 'csv/symmetrize-knl-shared-upcxx-64.csv'
+	skl_dist = 'csv/symmetrize-skl-dist-upcxx-16.csv'
+	knl_dist = 'csv/symmetrize-knl-dist-upcxx-256.csv'
 
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')

@@ -85,7 +85,7 @@ if (( run_upcxx_media )); then
                 continue
             fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
-            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
+            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$exp" "$seconds" "$throughput"
@@ -153,7 +153,7 @@ if (( run_upcxx_knl )); then
                 continue
             fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
-            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
+            seconds=$(time srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$exp" "$seconds" "$throughput"
@@ -181,7 +181,7 @@ if (( run_upcxx_media_cluster )); then
             fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-                upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$exp" "$seconds" "$throughput"
@@ -201,7 +201,7 @@ if (( run_upcxx_knl_cluster )); then
     progn=symmetrize-knl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
-    for nproc in 4 8 16 32 64; do
+    for nproc in 4 8 16 32 64 128 256; do
         printf 'X,Time[s],Throughput[GB/s]\n' > "$progn-$nproc".csv
         for exp in "${dims[@]}"; do
             n=$((1 << exp))
@@ -210,7 +210,7 @@ if (( run_upcxx_knl_cluster )); then
             fi
             printf >&2 'Benchmarking %s (rank %s, dimension %s)\n' "$progn" "$nproc" "${n}x${n}"
             seconds=$(time GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-                upcxx-run -N 4 -n "$nproc" -shared-heap 50% ./"$progn" --dim "$n" --bench)
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" --dim "$n" --bench)
             throughput=$(bc_throughput "$n" "$seconds")
 
             printf '%s,%s,%s\n' "$exp" "$seconds" "$throughput"
