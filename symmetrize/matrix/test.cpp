@@ -1,11 +1,12 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <iostream>
+#include <random>
 
 #include "trimatrix.h"
 #include "matrix.h"
 
-using namespace asc::pad_ws20::upcxx;
+using namespace asc::pad_ws20::project;
 
 template <typename Matrix>
 using Value = typename Matrix::value_type;
@@ -75,12 +76,6 @@ TEMPLATE_TEST_CASE("square matrix", "", TriMatrix<double>, SquareMatrix<double>)
     double diag[5] = {   // diagonal
         1, 7, 13, 19, 25
     };
-    double lower[10] = { // lower triangle (col-major order)
-        6, 11, 16, 21, 12, 17, 22, 18, 23, 24
-    };
-    double upper[10] = { // upper triangle (row-major)
-        2, 3, 4, 5, 8, 9, 10, 14, 15, 20
-    };
     double elems[25] = { // full matrix
          1,  2,  3,  4,  5,
          6,  7,  8,  9, 10,
@@ -91,9 +86,7 @@ TEMPLATE_TEST_CASE("square matrix", "", TriMatrix<double>, SquareMatrix<double>)
 
     // Initialization of matrix (redone for each section)
     Matrix M(elems, 25);
-    ptrdiff_t n = M.n();
-    ptrdiff_t t = M.t();
-    ptrdiff_t s = M.s();
+    int n = M.n();
 
     SECTION("const accessor") {
         int k = 1;
@@ -152,6 +145,12 @@ TEMPLATE_TEST_CASE("square matrix", "", TriMatrix<double>, SquareMatrix<double>)
     }
     
     SECTION("symmetrize matrix") {
+        Matrix N(n);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                N(i, j) = M(i, j);
+            }
+        }
         M.symmetrize();
 
         // double diag[5] = { 1, 7, 13, 19, 25 };
@@ -163,6 +162,7 @@ TEMPLATE_TEST_CASE("square matrix", "", TriMatrix<double>, SquareMatrix<double>)
                 CAPTURE(i);
                 CAPTURE(j);
                 CHECK(M(i, j) == M(j, i));
+                CHECK(M(i, j) == Approx((N(i, j) + N(j, i)) / 2.));
             }
         }
     }

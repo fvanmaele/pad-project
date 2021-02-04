@@ -13,14 +13,15 @@
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
+
 template <typename T>
 using timePoint = std::chrono::time_point<T>;
-
+using index_t = std::ptrdiff_t;
 
 template <typename T>
-std::ostream& dump_array(std::ostream& stream, T array[], int64_t n) {
+std::ostream& dump_array(std::ostream& stream, T array[], index_t n) {
     if (stream) {
-        for (int64_t i = 0; i < n - 1; ++i) {
+        for (index_t i = 0; i < n - 1; ++i) {
             stream << array[i] << " ";
         }
         stream << array[n - 1];
@@ -29,7 +30,7 @@ std::ostream& dump_array(std::ostream& stream, T array[], int64_t n) {
 }
 
 template <typename T>
-void dump_array_in_rank_order(std::ostream& stream, T array[], int64_t n, const char* label) {
+void dump_array_in_rank_order(std::ostream& stream, T array[], index_t n, const char* label) {
     for (int k = 0; k < upcxx::rank_n(); ++k) {
         if (upcxx::rank_me() == k) {
             if (k == 0) {
@@ -49,7 +50,7 @@ void dump_array_in_rank_order(std::ostream& stream, T array[], int64_t n, const 
 
 int main(int argc, char **argv)
 {
-    int64_t dim = 0;  // amount of rows/columns
+    index_t dim = 0;  // amount of rows/columns
     int seed = 42; // seed for pseudo-random generator
     bool write = false;
     bool bench = false;
@@ -96,13 +97,13 @@ int main(int argc, char **argv)
     int proc_id = upcxx::rank_me();
 
     // Block size for each process
-    const int64_t N = dim * (dim - 1) / 2;
-    const int64_t triag_size = N / nproc;
-    assert(triag_size % 2 == 0);
-    assert(N == triag_size * nproc);
+    const index_t N = dim * (dim - 1) / 2;
+    const index_t triangle_n = N / nproc;
+    assert(triangle_n % 2 == 0);
+    assert(N == triangle_n * nproc);
 
-    const int64_t diag_size = dim / nproc;
-    assert(dim == diag_size * nproc);
+    const index_t diagonal_n = dim / nproc;
+    assert(dim == diagonal_n * nproc);
 
     // For symmetrization of a square matrix, we consider three arrays:
     // - one holding the lower triangle, in col-major order;
@@ -110,9 +111,9 @@ int main(int argc, char **argv)
     // - one holding the diagonal.
     //
     // Symmetrization does not modify the diagonal, so it could be left out.
-    upcxx::global_ptr<float> lower_g(upcxx::new_array<float>(triag_size));
-    upcxx::global_ptr<float> upper_g(upcxx::new_array<float>(triag_size));
-    upcxx::global_ptr<float> diag_g(upcxx::new_array<float>(diag_size));
+    upcxx::global_ptr<float> lower_g(upcxx::new_array<float>(triangle_n));
+    upcxx::global_ptr<float> upper_g(upcxx::new_array<float>(triangle_n));
+    upcxx::global_ptr<float> diag_g(upcxx::new_array<float>(diagonal_n));
 
     // dist_object: each local value can be accessed with operator* or operator->, but
     // without guarantee that every local value is constructed after the call.
@@ -128,16 +129,16 @@ int main(int argc, char **argv)
 
     // Initialize upper and lower triangle with random values
     std::mt19937_64 rgen(seed);
-    rgen.discard(proc_id * triag_size * 2);
+    rgen.discard(proc_id * triangle_n * 2);
 
-    for (int64_t i = 0; i < triag_size; ++i) {
+    for (index_t i = 0; i < triangle_n; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
     }
     
     // Initialize diagonal (optional)
-    int64_t offset_diag = proc_id * diag_size; // offset for diagonal
-    for (int64_t i = 0; i < diag_size; ++i) {
+    index_t offset_diag = proc_id * diagonal_n; // offset for diagonal
+    for (index_t i = 0; i < diagonal_n; ++i) {
         diag[i] = offset_diag + i + 1;
     }
     upcxx::barrier();
@@ -150,9 +151,9 @@ int main(int argc, char **argv)
         upcxx::barrier();
         std::ofstream ofs(file_path, std::ofstream::app);
 
-        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER (C-m): ");
-        dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
-        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER (R-m): ");
+        dump_array_in_rank_order(ofs, lower, triangle_n, "LOWER (C-m): ");
+        dump_array_in_rank_order(ofs, diag, diagonal_n, "DIAG: ");
+        dump_array_in_rank_order(ofs, upper, triangle_n, "UPPER (R-m): ");
     }
 
     timePoint<Clock> t;
@@ -163,7 +164,7 @@ int main(int argc, char **argv)
     // Symmetrize matrix (SAXPY over lower and upper triangle). We only require 
     // a single for loop because lower and upper triangle are stored symmetrically 
     // (in col-major and row-major, respectively)
-    for (int64_t i = 0; i < triag_size; ++i) {
+    for (index_t i = 0; i < triangle_n; ++i) {
         float s = (lower[i] + upper[i]) / 2.;
         lower[i] = s;
         upper[i] = s;
@@ -184,9 +185,9 @@ int main(int argc, char **argv)
         upcxx::barrier();
         std::ofstream ofs(file_path_sym, std::ofstream::app);
 
-        dump_array_in_rank_order(ofs, lower, triag_size, "LOWER (C-m): ");
-        dump_array_in_rank_order(ofs, diag, diag_size, "DIAG: ");
-        dump_array_in_rank_order(ofs, upper, triag_size, "UPPER (R-m): ");
+        dump_array_in_rank_order(ofs, lower, triangle_n, "LOWER (C-m): ");
+        dump_array_in_rank_order(ofs, diag, diagonal_n, "DIAG: ");
+        dump_array_in_rank_order(ofs, upper, triangle_n, "UPPER (R-m): ");
     }
 
     upcxx::delete_array(lower_g); // XXX: proper way to use with dist_object?

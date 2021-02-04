@@ -13,15 +13,16 @@
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
+
 template <typename T>
 using timePoint = std::chrono::time_point<T>;
-
+using index_t = std::ptrdiff_t;
 
 template <typename T>
-std::ostream& dump_array(std::ostream& stream, T v[], int64_t n, const char* label) {
+std::ostream& dump_array(std::ostream& stream, T v[], index_t n, const char* label) {
     if (stream) {
         stream << label;
-        for (int64_t i = 0; i < n - 1; ++i) {
+        for (index_t i = 0; i < n - 1; ++i) {
             stream << v[i] << " ";
         }
         stream << v[n - 1] << std::endl;
@@ -30,7 +31,7 @@ std::ostream& dump_array(std::ostream& stream, T v[], int64_t n, const char* lab
 }
 
 int main(int argc, char** argv) {
-    int64_t dim = 0;   // amount of rows/columns
+    index_t dim = 0;   // amount of rows/columns
     int seed = 42;  // seed for pseudo-random generator
     bool write = false;
     bool bench = false;
@@ -70,8 +71,8 @@ int main(int argc, char** argv) {
         std::cerr << "positive dimension required (specify with --dim)" << std::endl;
         std::exit(1);
     }
-    const int64_t triag_size = dim*(dim - 1) / 2;
-    const int64_t diag_size = dim;
+    const index_t triangle_n = dim*(dim - 1) / 2;
+    const index_t diagonal_n = dim;
     
     // For symmetrization of a square matrix, we consider three arrays:
     // - one holding the lower triangle, in col-major order;
@@ -79,9 +80,9 @@ int main(int argc, char** argv) {
     // - one holding the diagonal.
     //
     // Symmetrization does not modify the diagonal, so it could be left out.
-    float* lower = new float[triag_size];
-    float* upper = new float[triag_size];
-    float* diag = new float[diag_size];
+    float* lower = new float[triangle_n];
+    float* upper = new float[triangle_n];
+    float* diag = new float[diagonal_n];
 
     // Initialize pseudo-random number generator
     std::mt19937_64 rgen(seed);
@@ -91,20 +92,18 @@ int main(int argc, char** argv) {
     int nproc = omp_get_num_threads();
     int proc_id = omp_get_thread_num();
     
-    int64_t block_size = triag_size / nproc;
-    assert(triag_size == nproc * block_size);
+    index_t block_size = triangle_n / nproc;
+    assert(triangle_n == nproc * block_size);
     rgen.discard(2 * block_size * proc_id); // advance pseudo-random number generator
 
 #pragma omp for schedule(static)
-    for (int64_t i = 0; i < triag_size; ++i)
-    {
+    for (index_t i = 0; i < triangle_n; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
     } // barrier
 
 #pragma omp for schedule(static)
-    for (int64_t i = 0; i < diag_size; ++i)
-    {
+    for (index_t i = 0; i < diagonal_n; ++i) {
         diag[i] = i + 1;
     } // barrier
 
@@ -113,15 +112,14 @@ int main(int argc, char** argv) {
         std::ofstream stream{file_path};
         if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
-            dump_array(stream, lower, triag_size, "LOWER (C-m): ");
-            dump_array(stream, diag, diag_size, "DIAG: ");
-            dump_array(stream, upper, triag_size, "UPPER (R-m): ");
+            dump_array(stream, lower, triangle_n, "LOWER (C-m): ");
+            dump_array(stream, diag, diagonal_n, "DIAG: ");
+            dump_array(stream, upper, triangle_n, "UPPER (R-m): ");
         }
     }
 
     timePoint<Clock> t;
-    if (bench && omp_get_thread_num() == 0) // measure on single thread
-    {
+    if (bench && omp_get_thread_num() == 0) { // measure on single thread
         t = Clock::now();
     }
 
@@ -129,15 +127,13 @@ int main(int argc, char** argv) {
     // the matrix as a SAXPY operation (over the lower and upper triangle) using a
     // single for loop.
 #pragma omp for simd schedule(static)
-    for (int64_t i = 0; i < triag_size; ++i)
-    {
+    for (index_t i = 0; i < triangle_n; ++i) {
         double s = (lower[i] + upper[i]) / 2;
         lower[i] = s;
         upper[i] = s;
     }
 
-    if (bench && omp_get_thread_num() == 0)
-    {
+    if (bench && omp_get_thread_num() == 0) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
         std::cout << std::fixed << time << std::endl;
@@ -149,9 +145,9 @@ int main(int argc, char** argv) {
         std::ofstream stream{file_path_sym};
         if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
-            dump_array(stream, lower, triag_size, "LOWER (C-m): ");
-            dump_array(stream, diag, diag_size, "DIAG: ");
-            dump_array(stream, upper, triag_size, "UPPER (R-m): ");
+            dump_array(stream, lower, triangle_n, "LOWER (C-m): ");
+            dump_array(stream, diag, diagonal_n, "DIAG: ");
+            dump_array(stream, upper, triangle_n, "UPPER (R-m): ");
         }
     }
     

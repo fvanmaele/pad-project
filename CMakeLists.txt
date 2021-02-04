@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(pad-project LANGUAGES CXX)
 
+find_package(Catch2 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP 4.0 REQUIRED)
