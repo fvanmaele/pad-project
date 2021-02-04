@@ -32,8 +32,7 @@ met:
  */
 
 #include "stencil-parallel.h"
-
-#include <algorithm>  // for min()
+#include <algorithm> // for min()
 #include <iostream>
 
 void stencil_parallel_step(int x0,
@@ -52,25 +51,24 @@ void stencil_parallel_step(int x0,
                            const int radius) {
     int Nxy = Nx * Ny;
     auto ind3 = [Nx, Nxy](const int x, const int y, const int z) { 
-		return (z * Nxy) + (y * Nx) + x; 
-	};
-
-	for (int z = z0; z < z1; ++z) {
-        for (int y = y0; y < y1; ++y)  {
+        return (z * Nxy) + (y * Nx) + x;
+        };
+    
+    for (int z = z0; z < z1; ++z) {
+        for (int y = y0; y < y1; ++y) {
 #pragma omp simd
             for (int x = x0; x < x1; ++x) {
                 auto index = ind3(x, y, z);
-				const float *VIin = Vin + index;
-				float *VIout = Vout + index;
+                const float *VIin = Vin + index;
+                float *VIout = Vout + index;
                 float div = coeff[0] * VIin[ind3(0, 0, 0)];
                 
-				for (int ir = 1; ir < radius; ++ir) {
+                for (int ir = 1; ir <= radius; ++ir) {
                     div += coeff[ir] * (VIin[ind3(+ir, 0, 0)] + VIin[ind3(-ir, 0, 0)]);
                     div += coeff[ir] * (VIin[ind3(0, +ir, 0)] + VIin[ind3(0, -ir, 0)]);
                     div += coeff[ir] * (VIin[ind3(0, 0, +ir)] + VIin[ind3(0, 0, -ir)]);
                 }
-                
-				float tmp = 2 * VIin[ind3(0, 0, 0)] - VIout[ind3(0, 0, 0)] + vsq[index] * div;
+                float tmp = 2 * VIin[ind3(0, 0, 0)] - VIout[ind3(0, 0, 0)] + vsq[index] * div;
                 VIout[ind3(0, 0, 0)] = tmp;
             }
         }
@@ -97,16 +95,19 @@ void loop_stencil_parallel(int t0,
                            const int ztilesize,
                            const int radius) {
     int cx = 0, cy = 0, cz = 0;
-
-	for (int t = t0; t < t1; ++t) {
+    
+    for (int t = t0; t < t1; ++t) {
 #pragma omp parallel for collapse(2) schedule(guided)
         for (int z = z0; z < z1; z += ztilesize) {
-            for (int y = y0; y < y1; y += ytilesize)  {
+            for (int y = y0; y < y1; y += ytilesize) {
                 for (int x = x0; x < x1; x += xtilesize) {
                     stencil_parallel_step(x, std::min(x1, x + xtilesize), y,
                                           std::min(y1, y + ytilesize), z,
                                           std::min(z1, z + ztilesize), Nx, Ny, Nz,
-                                          coeff, vsq, (t & 1) == 0 ? Veven : Vodd, (t & 1) == 0 ? Vodd : Veven, radius);
+                                          coeff, vsq, 
+                                          (t & 1) == 0 ? Veven : Vodd, 
+                                          (t & 1) == 0 ? Vodd : Veven, 
+                                          radius);
                 }
             }
         }
