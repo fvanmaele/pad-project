@@ -1,0 +1,179 @@
+ssh -A -t fvanmaele@mp-login.ziti.uni-heidelberg.de \
+	ssh -A fvanmaele@mp-headnode.ziti.uni-heidelberg.de
+
+export UPCXX_INSTALL=$HOME/personalSoftware
+
+module use $HOME/personalSoftware/share/modulefiles
+module load upcxx # sets UPCXX_INSTALL to <install directory>, prepends <install directory>/bin to PATH
+
+upcxx <file>.cpp
+GASNET_PSHM_NOES=<num threads> ./a.out
+
+int *local = /* ... */;
+rget(remote, local, count).wait();
+rput(local, remote, count).wait();
+
+---
+
+collectives
+ dist_object
+  local_team()
+  initial value
+
+new_array
+ !collective
+
+---
+
+reduction
+ one array per NUMA node
+  upcxx::dist_object(arg, local_team())
+  upcxx::rank_me() * block_size
+ one array per process
+  upcxx::broadcast
+  divided heap
+ one array per program
+  upcxx::dist_object(arg, world())
+  upcxx::rank_me() * block_size
+
+
+---
+
+check results with serial implementation
+ random generated numbers
+  fixed seed
+   use same seed for serial case
+   check results
+ multiple repetitions
+  check for race conditions
+
+---
+
+
+
+Questions:
+ dist_object is "universal name for group of processes" with local values; for reduction (with a partial sum reduction value per process or per node), broadcast seems more suitable;
+ how to retrieve values from multiple nodes?
+ SSH errors
+
+---
+
+$ kinit # create kerberos ticket
+
+$ GASNET_SSH_SERVERS='mp-media1 mp-media2 mp-media3 mp-media4' GASNET_SPAWNFN=C GASNET_CSPAWN_CMD='srun -w mp-media[1-4] -n %N %C' upcxx-run -N 4 -n 16 ./upcxx
+
+https://gasnet.lbl.gov/dist/udp-conduit/
+
+---
+
+demonstration of "local()" for remote global pointers (when using broadcast)
+
+//////////////////////////////////////////////////////////////////////
+UPC++ assertion failure:
+ on process 1 (mp-media1.ziti.uni-heidelberg.de)
+ at /home/nfs/fvanmaele/personalSoftware/upcxx.debug.gasnet_seq.udp/include/upcxx/backend.hpp:187
+ in function: void* upcxx::backend::localize_memory_nonnull(upcxx::intrank_t, uintptr_t)
+
+Rank 0 is not local with current rank (1).
+
+To have UPC++ freeze during these errors so you can attach a debugger,
+rerun the program with GASNET_FREEZE_ON_ERROR=1 in the environment.
+//////////////////////////////////////////////////////////////////////
+
+---
+
+main overhead in communication of partial sums / barrier / finalize
+
+---
+
+Questions:
+ std::chrono
+  ignore initialization time (?)
+   may be done if array is shared per node (instead of per process)
+    limits possible approaches
+   otherwise, take end time after upcxx::finalize?
+    begin time: on process 0?
+
+ command-line interface
+  time from upcxx-run
+  may be unstable due to network delays etc.
+  
+ openmp
+  "parallel for reduction" seems to have no impact on reduction (even with icc)
+  vectorization already applied from -march=skylake-avx512
+
+ srun / upcxx-run
+  maximum amount of processes seems 16 over 4 servers (with 8 processors each)
+  otherwise "could not allocate" error
+
+ numa openmp example
+  Does it only work on NUMA architectures with a single operating system? (numactl etc.)
+
+ uneven amount of processes / processors
+  required to handle? (dist_object e.g. with new_array assumes arrays of equal size)
+
+
+Serial verification of symmetrized matrix/exercise
+ serialize matrix (process-by-process)
+
+Throughput:
+ load + store over lower/upper triangle of floats
+ -> 2 * dim * (dim-1) * sizeof(float) * 1e-9 / time
+
+---
+
+SYMMETRIZE - RUNTIMES
+
+Following Gustafson's law, matrix dimensions were chosen sufficiently large (1 << 16, 1 << 16).
+
+The runtimes below are for the compiled program, including intialization. 
+* 3 runs were done, taking the minimum value. 
+* All programs were compiled with -O3 -march=knl -std=c++17 and GCC 10.2.
+
+X	Y	nodes	processes (total)	conduit	runtime (seconds)
+---------------------------------------------------------------
+1<<16	1<<16	1	1	-		       114.907s <---
+1<<16	1<<16	1	2	UPCXX_NETWORK=smp	79.053s
+1<<16	1<<16	1	2	OpenMP			59.419s
+---------------------------------------------------------------
+1<<16	1<<16	4	4	UPCXX_NETWORK=udp	42.104s
+1<<16	1<<16	1	4	UPCXX_NETWORK=smp	47.688s
+1<<16	1<<16	1	4	OpenMP			32.064s
+---------------------------------------------------------------
+1<<16	1<<16	4	8	UPCXX_NETWORK=udp	27.767s <---
+1<<16	1<<16	1	8	UPCXX_NETWORK=smp	31.139s <---
+1<<16	1<<16	1	8	OpenMP			21.281s
+---------------------------------------------------------------
+1<<16	1<<16	4	16	UPCXX_NETWORK=udp	22.845s
+1<<16	1<<16	1	16	UPCXX_NETWORK=smp	22.732s
+1<<16	1<<16	1	16	OpenMP			14.582s
+---------------------------------------------------------------
+1<<16	1<<16	4	32	UPCXX_NETWORK=udp	21.962s
+1<<16	1<<16	1	32	UPCXX_NETWORK=smp	19.939s
+1<<16	1<<16	1	32	OpenMP			13.187s
+---------------------------------------------------------------
+1<<16	1<<16	4	64	UPCXX_NETWORK=udp	21.681s
+1<<16	1<<16	1	64	UPCXX_NETWORK=smp	19.331s
+1<<16	1<<16	1	64	OpenMP			12.363s
+---------------------------------------------------------------
+
+Conclusion:
+
+* Symmetrization was implemented as a SAXPY operation, thus arithmetic intensity is low and speedup limited (here ~6x)
+* On single nodes, UPCXX has significant overhead compared to OpenMP.
+* When there is no communication between processes, the udp and smp upcxx conduits have similar overhead.
+
+---
+
+symmetrize benchmarks: 
+
+For the KNL cluster, the amount of processes were chosen as far as problem size allows. In particular:
+
+1 << 10 up to 1 << 14: 256
+1 << 9: 128
+1 << 8: 64
+1 << 7: 32
+1 << 6: 16
+1 << 5: 8
+
+For a single KNL node, 64 processes were taken for dimensions (1 << 8) up to (1 << 14). For the media cluster, 16 processes were taken from (1 << 6) up to (1 << 14) and 8 processes for (1 << 5). for a single Media node, 8 processes were taken for all dimensions.
