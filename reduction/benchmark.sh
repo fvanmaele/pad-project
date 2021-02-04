@@ -36,10 +36,6 @@ run_upcxx_knl_cluster=1
 # TODO: iterations
 iterations=5
 
-# ---------------------------------------
-# SHARED MEMORY, MEDIA
-# ---------------------------------------
-
 # Arguments: $1 progn ${@:2} spawned process (takes --size, --bench as arguments)
 run_benchmark() {
     local progn=$1 # iterations, size
@@ -60,6 +56,10 @@ run_benchmark() {
         printf >&2 '\n'
     done
 }
+
+# ---------------------------------------
+# SHARED MEMORY, MEDIA
+# ---------------------------------------
 
 # Serial, mp-media1 (processes: 1)
 if (( run_serial_media )); then

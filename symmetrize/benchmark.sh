@@ -32,10 +32,6 @@ run_upcxx_knl_cluster=1
 # TODO: iterations
 iterations=5
 
-# ---------------------------------------
-# SHARED MEMORY, MEDIA
-# ---------------------------------------
-
 # Arguments: $1 progn ${@:2} spawned process (takes --dim, --bench as arguments)
 run_benchmark() {
     local progn=$1 nproc=$2 # iterations, size
@@ -62,13 +58,18 @@ run_benchmark() {
     done
 }
 
+# ---------------------------------------
+# SHARED MEMORY, MEDIA
+# ---------------------------------------
+
 # Serial, mp-media1 (processes: 1)
 if (( run_serial_media )); then
     srv=mp-media1
     progn=symmetrize-skl-serial    
     (set -x; g++ "${gpp_flags[@]}" -march=skylake serial.cpp -o "$progn")
 
-    run_benchmark "$progn" 1 srun -w "$srv" ./"$progn" > "$progn".csv
+    run_benchmark "$progn" 1 \
+        srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
 
@@ -106,8 +107,7 @@ if (( run_serial_knl )); then
     progn=symmetrize-knl-serial
     (set -x; g++ "${gpp_flags[@]}" -march=knl serial.cpp -o "$progn")
 
-    nproc=1
-    run_benchmark "$progn" "$nproc" \
+    run_benchmark "$progn" 1 \
         srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
