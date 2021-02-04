@@ -50,7 +50,7 @@ run_benchmark() {
         local seconds=0 throughput=0
 
         for i in $(seq 1 "$iterations"); do
-            printf >&2 'Benchmarking %s (rank %s, data size %s, iteration %s)\n' "$progn" 1 "$n" "$i"
+            printf >&2 'Benchmarking %s (rank %s, data size %s, iteration %s)\n' "$progn" "$nproc" "$n" "$i"
             seconds+=$(time "$@" --size "$n" --bench) # `time` writes to stderr    
         done
         seconds=$(bc_div "$seconds" "$iterations")
@@ -61,12 +61,13 @@ run_benchmark() {
     done
 }
 
-# serial, mp-media1 (processes: 1)
+# Serial, mp-media1 (processes: 1)
 if (( run_serial_media )); then
     srv=mp-media1
     progn=reduction-skl-serial    
     (set -x; g++ "${gpp_flags[@]}" -march=skylake serial.cpp -o "$progn")
 
+    nproc=1
     run_benchmark "$progn" srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
@@ -97,16 +98,17 @@ fi
 # SHARED MEMORY, KNL
 # ---------------------------------------
 
-# serial, mp-knl1 (processes: 1)
+# Serial, mp-knl1 (processes: 1)
 if (( run_serial_knl )); then
     srv=mp-knl1
     progn=reduction-knl-serial
     (set -x; g++ "${gpp_flags[@]}" -march=knl serial.cpp -o "$progn")
 
+    nproc=1
     run_benchmark "$progn" srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
-# NUMA, mp-knl1 (OMP_NUM_THREADS: 2, 4, 8, 16, 32, 64)
+# OpenMP, mp-knl1 (OMP_NUM_THREADS: 2, 4, 8, 16, 32, 64)
 if (( run_openmp_knl )); then
     srv='mp-knl1'
     progn=reduction-knl-shared-openmp
@@ -149,13 +151,13 @@ fi
 # DISTRIBUTED, KNL
 # ---------------------------------------
 
-# UPCXX, mp-knl[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16, 32, 64)
+# UPCXX, mp-knl[1-4] (UPCXX_NETWORK=udp, processes: 4, 8, 16, 32, 64, 128, 256)
 if (( run_upcxx_knl_cluster )); then
     srv='mp-knl[1-4]'
     progn=reduction-knl-dist-upcxx
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
-    for nproc in 4 8 16 32 64; do
+    for nproc in 4 8 16 32 64 128 256; do
         run_benchmark "$progn" GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
             upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
     done
