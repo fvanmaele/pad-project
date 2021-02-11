@@ -4,9 +4,10 @@
 #include <utility>
 #include <vector>
 
-#include "lyra/lyra.hpp"
-#include "malloc.h"
-#include "omp.h"
+#include <lyra/lyra.hpp>
+
+//#include <malloc.h>
+#include <omp.h>
 #include "stencil-parallel.h"
 
 typedef struct {
@@ -39,10 +40,10 @@ void initData(const int Nx, const int Ny, const int Nz, const int radius,
 		for (int y = 0; y < Ny; ++y)
 			for (int x = 0; x < Nx; ++x, ++offset) {
 				if(x >= radius && x < Nx - radius &&
-						y >= radius && y < Ny - radius &&
-						z >= radius && z < Nz - radius){
-					A[offset] = (x < Nx / 2) ? x / float(Nx)
-						: y / float(Ny);
+				   y >= radius && y < Ny - radius &&
+				   z >= radius && z < Nz - radius) 
+                {
+					A[offset] = (x < Nx / 2) ? x / float(Nx) : y / float(Ny);
 					B[offset] = 0;
 					vsq[offset] = x * y * z / float(Nx * Ny * Nz);
 				}
@@ -50,7 +51,7 @@ void initData(const int Nx, const int Ny, const int Nz, const int radius,
 }
 
 void domainTile(std::vector<benchParam>* benchmark, const int x, const int y, const int z) {
-	//Adjust this to shrink the block space 
+	// Adjust this to shrink the block space 
 	int xstart = 2;
 	int xlim = x/2;
 	int ystart = 2;
@@ -149,20 +150,24 @@ int main(int argc, char** argv) {
 		for(auto &c : coeff)
 			c = 0.1f;
 
-		initData(outerX, outerY, outerZ, radius,Veven.data(), Vodd.data(), Vsq.data());
+		initData(outerX, outerY, outerZ, radius, Veven.data(), Vodd.data(), Vsq.data());
 		for (int iter = 0; iter < iterations; ++iter) {
 			auto t = Clock::now();
-			loop_stencil_parallel(
-					0, steps, radius, state.x+radius, radius,
-					state.y+radius, radius, state.z+radius, outerX,
-					outerY, outerZ, coeff.data(), Vsq.data(), Veven.data(),
-					Vodd.data(), state.xtile, state.ytile, state.ztile,radius);
-			Duration d = Clock::now() - t;
+            loop_stencil_parallel(0, steps, radius, 
+                                  state.x + radius, radius,
+                                  state.y + radius, radius, 
+                                  state.z + radius, outerX, outerY, outerZ, 
+                                  coeff.data(), Vsq.data(), Veven.data(), Vodd.data(), 
+                                  state.xtile, state.ytile, state.ztile, 
+                                  radius);
+
+            Duration d = Clock::now() - t;
 			time += d.count();
 		}
 		time /= iterations;
-		double bw = (state.x * state.y * state.z * sizeof(float) * steps * 1e-9) / time;
-		printCSV(state.x, state.y, state.z, state.xtile, state.ytile, state.ztile, time, bw);
+        double bw = (state.x * state.y * state.z * sizeof(float) * steps * 1e-9) / time;
+
+        printCSV(state.x, state.y, state.z, state.xtile, state.ytile, state.ztile, time, bw);
 	}
 	return 0;
 }

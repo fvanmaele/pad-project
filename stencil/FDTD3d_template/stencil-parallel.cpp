@@ -54,6 +54,7 @@ void stencil_parallel_step(int x0,
         return (z * Nxy) + (y * Nx) + x;
         };
     
+    // std::cout << "index (Vin): ";
     for (int z = z0; z < z1; ++z) {
         for (int y = y0; y < y1; ++y) {
 #pragma omp simd
@@ -63,11 +64,20 @@ void stencil_parallel_step(int x0,
                 float *VIout = Vout + index;
                 float div = coeff[0] * VIin[ind3(0, 0, 0)];
                 
+                // std::cout << "(" << x << ", " << y << ", " << z << ") ";
+                // std::cout << index << " ";
                 for (int ir = 1; ir <= radius; ++ir) {
+                    // std::cout << index + ind3(+ir, 0, 0) << " "
+                    //     << index + ind3(-ir, 0, 0) << " "
+                    //     << index + ind3(0, ir, 0) << " "
+                    //     << index + ind3(0, -ir, 0) << " "
+                    //     << index + ind3(0, 0, ir) << " "
+                    //     << index + ind3(0, 0, -ir) << " ";
                     div += coeff[ir] * (VIin[ind3(+ir, 0, 0)] + VIin[ind3(-ir, 0, 0)]);
                     div += coeff[ir] * (VIin[ind3(0, +ir, 0)] + VIin[ind3(0, -ir, 0)]);
                     div += coeff[ir] * (VIin[ind3(0, 0, +ir)] + VIin[ind3(0, 0, -ir)]);
                 }
+                std::cout << std::endl;
                 float tmp = 2 * VIin[ind3(0, 0, 0)] - VIout[ind3(0, 0, 0)] + vsq[index] * div;
                 VIout[ind3(0, 0, 0)] = tmp;
             }
