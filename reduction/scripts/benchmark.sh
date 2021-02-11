@@ -20,14 +20,14 @@ bc_throughput() {
     bc -l <<< "4 * $size * (10^-9) / $time"
 }
 
-# Floating-point division
+bc_add() { bc -l <<< "$1 + $2"; }
 bc_div() { bc -l <<< "$1 / $2"; }
 
 # Enabled benchmarks
-run_serial_media=1
+run_serial_media=0
 run_openmp_media=1
 run_upcxx_media=1
-run_serial_knl=1
+run_serial_knl=0
 run_openmp_knl=1
 run_upcxx_knl=1
 run_upcxx_media_cluster=1
@@ -38,8 +38,8 @@ iterations=5
 
 # Arguments: $1 progn ${@:2} spawned process (takes --size, --bench as arguments)
 run_benchmark() {
-    local progn=$1 # iterations, size
-    shift 1
+    local progn=$1 nproc=$2 # iterations, size
+    shift 2
 
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for n in "${sizes[@]}"; do
@@ -47,7 +47,8 @@ run_benchmark() {
 
         for i in $(seq 1 "$iterations"); do
             printf >&2 'Benchmarking %s (rank %s, data size %s, iteration %s)\n' "$progn" "$nproc" "$n" "$i"
-            seconds+=$(time "$@" --size "$n" --bench) # `time` writes to stderr    
+            seconds_lt=$(time "$@" --size "$n" --bench) # `time` writes to stderr    
+            seconds=$(bc_add "$seconds" "$seconds_lt")
         done
         seconds=$(bc_div "$seconds" "$iterations")
         throughput=$(bc_throughput "$n" "$seconds")
@@ -67,8 +68,8 @@ if (( run_serial_media )); then
     progn=reduction-skl-serial    
     (set -x; g++ "${gpp_flags[@]}" -march=skylake serial.cpp -o "$progn")
 
-    nproc=1
-    run_benchmark "$progn" srun -w "$srv" ./"$progn" > "$progn".csv
+    run_benchmark "$progn" 1 \
+        srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
 
@@ -79,7 +80,8 @@ if (( run_openmp_media )); then
     (set -x; g++ "${gpp_flags[@]}" -march=skylake -fopenmp openmp.cpp -o "$progn")
 
     for nproc in 2 4 8; do
-        run_benchmark "$progn" srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" > "$progn-$nproc".csv
     done
 fi
 
@@ -90,7 +92,8 @@ if (( run_upcxx_media )); then
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 2 4 8; do
-        run_benchmark "$progn" srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
     done
 fi
 
@@ -104,8 +107,8 @@ if (( run_serial_knl )); then
     progn=reduction-knl-serial
     (set -x; g++ "${gpp_flags[@]}" -march=knl serial.cpp -o "$progn")
 
-    nproc=1
-    run_benchmark "$progn" srun -w "$srv" ./"$progn" > "$progn".csv
+    run_benchmark "$progn" 1 \
+        srun -w "$srv" ./"$progn" > "$progn".csv
 fi
 
 # OpenMP, mp-knl1 (OMP_NUM_THREADS: 2, 4, 8, 16, 32, 64)
@@ -115,7 +118,8 @@ if (( run_openmp_knl )); then
     (set -x; g++ "${gpp_flags[@]}" -march=knl -fopenmp openmp.cpp -o "$progn")
 
     for nproc in 2 4 8 16 32 64; do
-        run_benchmark "$progn" srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            srun -w "$srv" env OMP_NUM_THREADS=$nproc ./"$progn" > "$progn-$nproc".csv
     done
 fi
 
@@ -126,7 +130,8 @@ if (( run_upcxx_knl )); then
     (set -x; UPCXX_NETWORK=smp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 2 4 8 16 32 64; do
-        run_benchmark "$progn" srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            srun -w "$srv" upcxx-run -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
     done
 fi
 
@@ -141,8 +146,9 @@ if (( run_upcxx_media_cluster )); then
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=skylake upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16; do
-        run_benchmark "$progn" GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-            upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
     done
 fi
 
@@ -158,7 +164,8 @@ if (( run_upcxx_knl_cluster )); then
     (set -x; UPCXX_NETWORK=udp upcxx "${gpp_flags[@]}" -march=knl upcxx.cpp -o "$progn")
 
     for nproc in 4 8 16 32 64 128 256; do
-        run_benchmark "$progn" GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
-            upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
+        run_benchmark "$progn" "$nproc" \
+            env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w $srv -n %N %C" \
+                upcxx-run -N 4 -n "$nproc" -shared-heap 80% ./"$progn" > "$progn-$nproc".csv
     done
 fi

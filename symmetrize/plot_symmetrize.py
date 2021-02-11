@@ -47,9 +47,6 @@ if __name__ == "__main__":
 	skl_dist = 'symmetrize-skl-dist-upcxx.csv'
 	knl_dist = 'symmetrize-knl-dist-upcxx.csv'
 
-	#skl_shared = 'symmetrize-skl-shared-upcxx.csv'
-	#knl_shared = 'symmetrize-knl-shared-upcxx.csv'
-
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')
 	shared = pd.concat([skl,knl])

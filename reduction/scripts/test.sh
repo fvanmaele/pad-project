@@ -26,13 +26,13 @@ for n in "${sizes[@]}"; do
         sum_2=$(OMP_NUM_THREADS=8 ./test-openmp --size "$n" --seed="$seed" --write)
         sum_3=$(upcxx-run -n 8 -shared-heap 50% ./test-upcxx --size "$n" --seed="$seed" --write)
 
-        [[ $sum_2 == $sum_1 ]] || { # assumes implicit rounding by output stream
+        [[ $sum_2 == "$sum_1" ]] || { # assumes implicit rounding by output stream
             printf >&2 'inegality for size %s, seed %s, iteration %s\n' "$n" "$seed" "$i"
             printf >&2 'result of serial reduction: %s' "$sum_1"
             printf >&2 'result of openmp reduction: %s' "$sum_2"
             exit 1
         }
-        [[ $sum_3 == $sum_1 ]] || {
+        [[ $sum_3 == "$sum_1" ]] || {
             printf >&2 'inegality for size %s, seed %s, iteration %s\n' "$n" "$seed" "$i"
             printf >&2 'result of serial reduction: %s' "$sum_1"
             printf >&2 'result of upcxx reduction: %s' "$sum_3"
