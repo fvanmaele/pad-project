@@ -35,7 +35,7 @@ void printCSV(const int x, const int y, const int z, const int xtile,
 void initData(const int Nx, const int Ny, const int Nz, const int radius, 
               float* A, float* B, float* vsq) {
 	int offset = 0;
-	
+
     for (int z = 0; z < Nz; ++z)
 		for (int y = 0; y < Ny; ++y)
 			for (int x = 0; x < Nx; ++x, ++offset) {

@@ -177,3 +177,10 @@ For the KNL cluster, the amount of processes were chosen as far as problem size 
 1 << 5: 8
 
 For a single KNL node, 64 processes were taken for dimensions (1 << 8) up to (1 << 14). For the media cluster, 16 processes were taken from (1 << 6) up to (1 << 14) and 8 processes for (1 << 5). for a single Media node, 8 processes were taken for all dimensions.
+
+--- latency hiding, agglomeration
+
+dimension increases cubically; halo increases quadratically
+-> surface-to-volume ratio
+
+communication/computation: which cost dominates
