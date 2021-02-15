@@ -30,11 +30,11 @@ int main(int argc, char** argv)
     const char* file_path = "upcxx_stencil.txt";
     const char* file_path_steps = "upcxx_stencil_steps.txt";
 
-    index_t dim_x = 4;
-    index_t dim_y = 4;
-    index_t dim_z = 4;
-    int radius = 1;
-    int steps = 1;
+    index_t dim_x = 32;
+    index_t dim_y = 32;
+    index_t dim_z = 32;
+    int radius = 4;
+    int steps = 5;
 
     // TODO: process options with Lyra
 
@@ -92,23 +92,19 @@ int main(int argc, char** argv)
         t = Clock::now();
     }
     for (int t = 0; t < steps; ++t) {
-        index_t z0 = dim_zi * proc_id;
-        index_t z1 = dim_zi * (proc_id+1);
-        
-        if ((t & 1) == 0) {
-            std::fprintf(stderr, "Retrieving ghost cells for %s, rank %d, nproc %d\n", "Veven", proc_id, proc_n);
-            if (proc_n > 1) stencil_get_ghost_cells(Veven_g, n_local, n_ghost_offset);
-            // stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius + z0, radius + z1,
-            //                       Nx, Ny, Nz, coeff, Vsq,
-            //                       Veven, Vodd, radius);
-        } else {
-            std::fprintf(stdout, "Retrieving ghost cells for %s, rank %d, nproc %d\n", "Vodd", proc_id, proc_n);
-            if (proc_n > 1) stencil_get_ghost_cells(Vodd_g, n_local, n_ghost_offset);
-            // stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius + z0, radius + z1,
-            //                       Nx, Ny, Nz, coeff, Vsq,
-            //                       Vodd, Veven, radius);
+        bool is_even_ts = (t & 1) == 0;
 
-        }
+        if (proc_n > 1) {
+            std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
+            stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g, n_local, n_ghost_offset);
+        } // barrier
+        stencil_parallel_step(radius, radius + dim_x,
+                              radius, radius + dim_y,
+                              radius, radius + dim_zi,
+                              Nx, Ny, Nz, coeff, Vsq,
+                              is_even_ts ? Veven : Vodd,
+                              is_even_ts ? Vodd : Veven, radius);
+
         // Wait until all processes have finished calculations before proceeding to next step
         upcxx::barrier();
     }

@@ -41,34 +41,6 @@ bool is_positive(Ns... args) {
     return ((args <= 0) && ...);
 }
 
-template <typename T = float>
-void init_data(index_t Nx, index_t Ny, index_t Nz, int radius, int seed,
-              std::vector<T> &Veven, std::vector<T> &Vodd, std::vector<T> &Vsq)
-{
-    std::mt19937_64 rgen(seed);
-
-    // Current position when iterating over the (3-dimensional) array
-	index_t offset = 0;
-    std::uniform_real_distribution<T> dist1(0.0, 1.0);
-    std::uniform_real_distribution<T> dist2(0.0, 0.2);
-
-    for (index_t z = 0; z < Nz; ++z)
-		for (index_t y = 0; y < Ny; ++y)
-			for (index_t x = 0; x < Nx; ++x, ++offset) {
-                // Fill inside of block with pseudo-random values
-				if(x >= radius && x < Nx - radius &&
-				   y >= radius && y < Ny - radius &&
-				   z >= radius && z < Nz - radius) 
-                {
-					//Veven[offset] = (x < Nx / 2) ? x / float(Nx) : y / float(Ny);
-                    Veven[offset] = dist1(rgen);
-					Vodd[offset] = 0;
-					//Vsq[offset] = x * y * z / float(Nx * Ny * Nz);
-                    Vsq[offset] = dist2(rgen);
-				}
-			}
-}
-
 int main(int argc, char** argv) 
 {
     int seed = 42;  // seed for pseudo-random generator
@@ -78,11 +50,11 @@ int main(int argc, char** argv)
     const char* file_path_steps = "serial_stencil_steps.txt";
 
     // TODO: add Lyra options
-    index_t dim_x = 4;
-    index_t dim_y = 4;
-    index_t dim_z = 4;
-    int radius = 1;
-    int steps = 1;
+    index_t dim_x = 32;
+    index_t dim_y = 32;
+    index_t dim_z = 32;
+    int radius = 4;
+    int steps = 5;
 
     // Array padding, used for accessing neighbors on domain border.
     index_t Nx = dim_x + 2*radius;
@@ -99,7 +71,7 @@ int main(int argc, char** argv)
     std::vector<float> coeff(radius+1);
 
     // Initialize elements with pseudo-random elements
-    init_data<float>(Nx, Ny, Nz, radius, seed, Veven, Vodd, Vsq);
+    stencil_init_data(Nx, Ny, Nz, radius, rgen, Veven.data(), Vodd.data(), Vsq.data());
     for (auto&& elem : coeff) {
         elem = 0.1f;
     }

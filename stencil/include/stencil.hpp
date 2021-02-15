@@ -35,21 +35,49 @@ met:
 #define STENCIL_HPP
 #include <algorithm> // for min()
 #include <iostream>
+#include <random>
 
-void stencil_parallel_step(int x0,
-                           int x1,
-                           int y0,
-                           int y1,
-                           int z0,
-                           int z1,
-                           int Nx,
-                           int Ny,
-                           int Nz,
-                           const float coeff[],
-                           const float vsq[],
-                           const float Vin[],
-                           float Vout[],
-                           const int radius) {
+inline void
+stencil_init_data(int Nx, int Ny, int Nz,
+                  int radius, std::mt19937_64 &rgen,
+                  float *Veven, float *Vodd, float *Vsq)
+{
+    // Current position when iterating over the (3-dimensional) array
+    int offset = 0;
+    std::uniform_real_distribution<float> dist1(0.0, 1.0);
+    std::uniform_real_distribution<float> dist2(0.0, 0.2);
+
+    for (int z = 0; z < Nz; ++z)
+        for (int y = 0; y < Ny; ++y)
+            for (int x = 0; x < Nx; ++x, ++offset)
+            {
+                // Fill inside of block with pseudo-random values
+                if (x >= radius && x < Nx - radius &&
+                    y >= radius && y < Ny - radius &&
+                    z >= radius && z < Nz - radius)
+                {
+                    Veven[offset] = dist1(rgen);
+                    Vodd[offset] = 0; // NOTE: already intialized by upcxx::new_array/std::vector to 0
+                    Vsq[offset] = dist2(rgen);
+                }
+            }
+}
+
+inline void
+stencil_parallel_step(int x0,
+                      int x1,
+                      int y0,
+                      int y1,
+                      int z0,
+                      int z1,
+                      int Nx,
+                      int Ny,
+                      int Nz,
+                      const float coeff[],
+                      const float vsq[],
+                      const float Vin[],
+                      float Vout[],
+                      const int radius) {
     int Nxy = Nx * Ny;
     auto ind3 = [Nx, Nxy](const int x, const int y, const int z) { 
         return (z * Nxy) + (y * Nx) + x;
@@ -76,25 +104,26 @@ void stencil_parallel_step(int x0,
     }
 }
 
-void loop_stencil_parallel(int t0,
-                           int t1,
-                           int x0,
-                           int x1,
-                           int y0,
-                           int y1,
-                           int z0,
-                           int z1,
-                           int Nx,
-                           int Ny,
-                           int Nz,
-                           const float coeff[],
-                           const float vsq[],
-                           float Veven[],
-                           float Vodd[],
-                           const int xtilesize,
-                           const int ytilesize,
-                           const int ztilesize,
-                           const int radius) {
+inline void
+loop_stencil_parallel(int t0,
+                      int t1,
+                      int x0,
+                      int x1,
+                      int y0,
+                      int y1,
+                      int z0,
+                      int z1,
+                      int Nx,
+                      int Ny,
+                      int Nz,
+                      const float coeff[],
+                      const float vsq[],
+                      float Veven[],
+                      float Vodd[],
+                      const int xtilesize,
+                      const int ytilesize,
+                      const int ztilesize,
+                      const int radius) {
     int cx = 0, cy = 0, cz = 0;
     
     for (int t = t0; t < t1; ++t) {

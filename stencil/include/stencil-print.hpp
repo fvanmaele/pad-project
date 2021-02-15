@@ -35,15 +35,14 @@ dump_stencil_impl(std::ostream &stream, float* array, index_t n_local, index_t n
             if (proc_id == k) {
                 stream << "Rank " << proc_id << std::endl;
                 stream << label << std::endl;
-
                 stream << "Ghost (lower): ";
                 dump_array(stream, array, 0, n_ghost_offset);
                 stream << std::endl;
-                
+
                 stream << "Block: ";
                 dump_array(stream, array, n_ghost_offset, n_local - n_ghost_offset);
                 stream << std::endl;
-                
+
                 stream << "Ghost (upper): ";
                 dump_array(stream, array, n_local - n_ghost_offset, n_local);
                 stream << std::endl << std::endl;
