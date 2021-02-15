@@ -7,8 +7,9 @@
 #include <getopt.h>
 
 #include "include/upcxx.hpp"
-#include "include/upcxx_stencil.hpp"
-#include "include/upcxx_print.hpp"
+#include "include/stencil.hpp"
+#include "include/stencil-upcxx.hpp"
+#include "include/stencil-print.hpp"
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
@@ -27,12 +28,13 @@ int main(int argc, char** argv)
     bool bench = false;
     bool write = true;
     const char* file_path = "upcxx_stencil.txt";
+    const char* file_path_steps = "upcxx_stencil_steps.txt";
 
-    index_t dim_x = 8;
-    index_t dim_y = 8;
-    index_t dim_z = 8;
-    int radius = 2;
-    int steps = 2;
+    index_t dim_x = 4;
+    index_t dim_y = 4;
+    index_t dim_z = 4;
+    int radius = 1;
+    int steps = 1;
 
     // TODO: process options with Lyra
 
@@ -80,7 +82,6 @@ int main(int argc, char** argv)
     }
     upcxx::barrier();
 
-    // Serialize E and H arrays (coeff and perm are static and thus left out)
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path);
     }
@@ -90,31 +91,36 @@ int main(int argc, char** argv)
     if (proc_id == 0 && bench) { // benchmark on the first process
         t = Clock::now();
     }
-    // for (int t = 0; t < steps; ++t) {
-    //     if ((t & 1) == 0) {
-    //         // even step -> update H from E
-    //         if (proc_n > 1) {
-    //             stencil_get_ghost_cells(Veven_g, n_block, n_ghost_offset);
-    //         }
-    //         stencil_compute_step(E, H, coeff, perm, dim_x, dim_y, dim_z, n_ghost_offset, n_z, radius);
-    //     } else { 
-    //         // uneven step -> update E from H
-    //         if (proc_n > 1) {
-    //             stencil_get_ghost_cells(Vodd_g, n_block, n_ghost_offset);
-    //         }
-    //         stencil_compute_step(H, E, coeff, perm, dim_x, dim_y, dim_z, n_ghost_offset, n_z, radius);
-    //     }
-    //     // wait until all processes have finished calculations before proceeding to next step
-    //     upcxx::barrier();
-    // }
-    // if (proc_id == 0 && bench) {
-    //     Duration d = Clock::now() -t;
-    //     double time = d.count(); // time in seconds
-    //     std::fprintf(stdout, "%f.12", time);
-    // }
-    // if (write) {
-    //     dump_stencil(E, H, dim_x, dim_y, dim_z, n_local, n_ghost_offset, file_path);
-    // }
+    for (int t = 0; t < steps; ++t) {
+        index_t z0 = dim_zi * proc_id;
+        index_t z1 = dim_zi * (proc_id+1);
+        
+        if ((t & 1) == 0) {
+            std::fprintf(stderr, "Retrieving ghost cells for %s, rank %d, nproc %d\n", "Veven", proc_id, proc_n);
+            if (proc_n > 1) stencil_get_ghost_cells(Veven_g, n_local, n_ghost_offset);
+            // stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius + z0, radius + z1,
+            //                       Nx, Ny, Nz, coeff, Vsq,
+            //                       Veven, Vodd, radius);
+        } else {
+            std::fprintf(stdout, "Retrieving ghost cells for %s, rank %d, nproc %d\n", "Vodd", proc_id, proc_n);
+            if (proc_n > 1) stencil_get_ghost_cells(Vodd_g, n_local, n_ghost_offset);
+            // stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius + z0, radius + z1,
+            //                       Nx, Ny, Nz, coeff, Vsq,
+            //                       Vodd, Veven, radius);
+
+        }
+        // Wait until all processes have finished calculations before proceeding to next step
+        upcxx::barrier();
+    }
+
+    if (proc_id == 0 && bench) {
+        Duration d = Clock::now() -t;
+        double time = d.count(); // time in seconds
+        std::fprintf(stdout, "%f.12", time);
+    }
+    if (write) {
+        dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps);
+    }
     upcxx::finalize();
     // END PARALLEL REGION
 }

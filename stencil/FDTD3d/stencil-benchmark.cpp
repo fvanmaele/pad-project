@@ -153,10 +153,11 @@ int main(int argc, char** argv) {
 		initData(outerX, outerY, outerZ, radius, Veven.data(), Vodd.data(), Vsq.data());
 		for (int iter = 0; iter < iterations; ++iter) {
 			auto t = Clock::now();
-            loop_stencil_parallel(0, steps, radius, 
-                                  state.x + radius, radius,
-                                  state.y + radius, radius, 
-                                  state.z + radius, outerX, outerY, outerZ, 
+            loop_stencil_parallel(0, steps, 
+								  radius, state.x + radius, 
+								  radius, state.y + radius, 
+								  radius, state.z + radius, 
+								  outerX, outerY, outerZ, 
                                   coeff.data(), Vsq.data(), Veven.data(), Vodd.data(), 
                                   state.xtile, state.ytile, state.ztile, 
                                   radius);

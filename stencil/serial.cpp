@@ -12,7 +12,7 @@
 
 //#include <lyra/lyra.hpp>
 
-#include "FDTD3d/stencil-parallel.h"
+#include "include/stencil.hpp"
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
@@ -75,13 +75,14 @@ int main(int argc, char** argv)
     bool bench = false;
     bool write = true;
     const char* file_path = "serial_stencil.txt";
+    const char* file_path_steps = "serial_stencil_steps.txt";
 
     // TODO: add Lyra options
-    index_t dim_x = 8;
-    index_t dim_y = 8;
-    index_t dim_z = 8;
-    int radius = 2;
-    int steps = 2;
+    index_t dim_x = 4;
+    index_t dim_y = 4;
+    index_t dim_z = 4;
+    int radius = 1;
+    int steps = 1;
 
     // Array padding, used for accessing neighbors on domain border.
     index_t Nx = dim_x + 2*radius;
@@ -111,4 +112,22 @@ int main(int argc, char** argv)
             dump_vector(stream, Vsq, "Vsq: ");
         }
     }
+
+    for (int t = 0; t < steps; ++t) {
+        stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius, radius + dim_z,
+                              Nx, Ny, Nz, coeff.data(), Vsq.data(),
+                              ((t&1) == 0 ? Veven.data() : Vodd.data()), 
+                              ((t&1) == 0 ? Vodd.data() : Veven.data()), 
+                              radius);
+    }
+
+    if (write) {
+        std::ofstream stream(file_path_steps, std::ofstream::trunc);
+        if (stream) {
+            dump_vector(stream, Veven, "Veven: ");
+            dump_vector(stream, Vodd, "Vodd: ");
+            dump_vector(stream, Vsq, "Vsq: ");
+        }
+    }
+
 }
