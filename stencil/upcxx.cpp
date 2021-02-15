@@ -1,10 +1,12 @@
+#include <iostream>
 #include <random>
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <chrono>
-#include <getopt.h>
+
+#include <lyra/lyra.hpp>
+#include <fmt/format.h>
 
 #include "include/upcxx.hpp"
 #include "include/stencil.hpp"
@@ -26,7 +28,8 @@ int main(int argc, char** argv)
 {
     int seed = 42;  // seed for pseudo-random generator
     bool bench = false;
-    bool write = true;
+    bool write = false;
+    bool show_help = false;
     const char* file_path = "upcxx_stencil.txt";
     const char* file_path_steps = "upcxx_stencil_steps.txt";
 
@@ -36,7 +39,38 @@ int main(int argc, char** argv)
     int radius = 4;
     int steps = 5;
 
-    // TODO: process options with Lyra
+    auto cli = lyra::help(show_help) |
+        lyra::opt(dim_x, "dim_x")["-x"]["--dim_x"](
+            "Size of domain (x-dimension), default is 32") |
+        lyra::opt(dim_y, "dim_y")["-y"]["--dim_y"](
+            "Size of domain (y-dimension), default is 32") |
+        lyra::opt(dim_z, "dim_z")["-z"]["--dim_z"](
+            "Size of domain (z-dimension), default is 32") |
+        lyra::opt(radius, "radius")["-r"]["--radius"](
+            "Stencil radius, default is 4") |
+        lyra::opt(steps, "steps")["-t"]["--steps"](
+            "Number of time steps, default is 5") |
+        lyra::opt(bench)["--bench"](
+            "Enable benchmarking") |
+        lyra::opt(seed, "seed")["--seed"](
+            "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(write)["--write"](
+            "Write out array contents to file");
+    auto result = cli.parse({argc, argv});
+    
+    if (!is_positive(dim_x, dim_y, dim_z, radius, steps)) {
+        std::cerr << "Arguments must be positive" << std::endl;
+        exit(1);
+    }
+    if (!result) {
+		std::cerr << "Error in command line: " << result.errorMessage()
+			  << std::endl;
+		exit(1);
+	}
+	if (show_help) {
+		std::cout << cli << std::endl;
+		exit(0);
+	}
 
     // BEGIN PARALLEL REGION
     upcxx::init();
@@ -95,7 +129,7 @@ int main(int argc, char** argv)
         bool is_even_ts = (t & 1) == 0;
 
         if (proc_n > 1) {
-            std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
+            fmt::print(stderr, "Retrieving ghost cells for {}, rank ({}/{}), step {}\n", "Veven", proc_id, proc_n, t);
             stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g, n_local, n_ghost_offset);
         } // barrier
         stencil_parallel_step(radius, radius + dim_x,
@@ -112,7 +146,7 @@ int main(int argc, char** argv)
     if (proc_id == 0 && bench) {
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
-        std::fprintf(stdout, "%f.12", time);
+        fmt::print("{:.12f}\n", time);
     }
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps);

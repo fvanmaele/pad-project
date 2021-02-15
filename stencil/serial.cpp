@@ -4,13 +4,10 @@
 #include <chrono>
 #include <vector>
 #include <fstream>
-
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <getopt.h>
 
-//#include <lyra/lyra.hpp>
+#include <lyra/lyra.hpp>
+#include <fmt/format.h>
 
 #include "include/stencil.hpp"
 
@@ -38,23 +35,56 @@ std::ostream &dump_vector(std::ostream &stream, const std::vector<T> &v,
 
 template <typename ...Ns>
 bool is_positive(Ns... args) {
-    return ((args <= 0) && ...);
+    return ((args > 0) && ...);
 }
 
 int main(int argc, char** argv) 
 {
     int seed = 42;  // seed for pseudo-random generator
     bool bench = false;
-    bool write = true;
+    bool write = false;
+    bool show_help = false;
     const char* file_path = "serial_stencil.txt";
     const char* file_path_steps = "serial_stencil_steps.txt";
 
-    // TODO: add Lyra options
     index_t dim_x = 32;
     index_t dim_y = 32;
     index_t dim_z = 32;
     int radius = 4;
     int steps = 5;
+
+    auto cli = lyra::help(show_help) |
+        lyra::opt(dim_x, "dim_x")["-x"]["--dim_x"](
+            "Size of domain (x-dimension), default is 32") |
+        lyra::opt(dim_y, "dim_y")["-y"]["--dim_y"](
+            "Size of domain (y-dimension), default is 32") |
+        lyra::opt(dim_z, "dim_z")["-z"]["--dim_z"](
+            "Size of domain (z-dimension), default is 32") |
+        lyra::opt(radius, "radius")["-r"]["--radius"](
+            "Stencil radius, default is 4") |
+        lyra::opt(steps, "steps")["-t"]["--steps"](
+            "Number of time steps, default is 5") |
+        lyra::opt(bench)["--bench"](
+            "Enable benchmarking") |
+        lyra::opt(seed, "seed")["--seed"](
+            "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(write)["--write"](
+            "Write out array contents to file");
+    auto result = cli.parse({argc, argv});
+    
+    if (!is_positive(dim_x, dim_y, dim_z, radius, steps)) {
+        std::cerr << "Arguments must be positive" << std::endl;
+        exit(1);
+    }
+    if (!result) {
+		std::cerr << "Error in command line: " << result.errorMessage()
+			  << std::endl;
+		exit(1);
+	}
+	if (show_help) {
+		std::cout << cli << std::endl;
+		exit(0);
+	}
 
     // Array padding, used for accessing neighbors on domain border.
     index_t Nx = dim_x + 2*radius;
@@ -85,6 +115,11 @@ int main(int argc, char** argv)
         }
     }
 
+    // Begin FDTD
+    time_point<Clock> t{};
+    if (bench) {
+        t = Clock::now();
+    }
     for (int t = 0; t < steps; ++t) {
         stencil_parallel_step(radius, radius + dim_x, radius, radius + dim_y, radius, radius + dim_z,
                               Nx, Ny, Nz, coeff.data(), Vsq.data(),
@@ -92,7 +127,11 @@ int main(int argc, char** argv)
                               ((t&1) == 0 ? Vodd.data() : Veven.data()), 
                               radius);
     }
-
+    if (bench) {
+        Duration d = Clock::now() -t;
+        double time = d.count(); // time in seconds
+        fmt::print("{:.12f}\n", time);
+    }
     if (write) {
         std::ofstream stream(file_path_steps, std::ofstream::trunc);
         if (stream) {
