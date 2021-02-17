@@ -124,6 +124,15 @@ int main(int argc, char** argv)
     if (proc_id == 0 && bench) { // benchmark on the first process
         t = Clock::now();
     }
+    // if (bench) {
+    //     time_point<Clock> t{};
+    //     if (proc_id == 0) {
+    //         t = Clock::now();
+    //     }
+    // TODO: allow variable number of iterations, take average
+    //     for (int it = 0; it < iterations; ++it) {
+    //     }
+    // }
     for (int t = 0; t < steps; ++t) {
         bool is_even_ts = (t & 1) == 0;
 
@@ -148,7 +157,7 @@ int main(int argc, char** argv)
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
         double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
-        std::fprintf(stdout, "%d,%d,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, throughput, time);
+        std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
     }
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps);

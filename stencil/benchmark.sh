@@ -31,15 +31,15 @@ bench() {
     # Alternate the doubling of the x-, y- and z-dimension.
     while (( x < max )); do
         printf >&2 'Benchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        time "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
         x=$((x * 2))
         
         printf >&2 '\nBenchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        time "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
         y=$((y * 2))
         
         printf >&2 '\nBenchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        time "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
         z=$((z * 2))
     done
 

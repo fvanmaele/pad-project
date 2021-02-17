@@ -10,6 +10,15 @@ target_include_directories(stencil-serial
 # target_include_directories(stencil-openmp PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
 # target_link_libraries(stencil-openmp PRIVATE OpenMP::OpenMP_CXX)
 
+add_executable(stencil-upcxx "upcxx.cpp")
+target_include_directories(stencil-upcxx PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(stencil-upcxx
+    PRIVATE 
+        UPCXX::upcxx)
+target_compile_options(stencil-upcxx
+    PRIVATE 
+        -march=native)
+
 add_executable(stencil-upcxx-skl "upcxx.cpp")
 target_include_directories(stencil-upcxx-skl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
 target_link_libraries(stencil-upcxx-skl
