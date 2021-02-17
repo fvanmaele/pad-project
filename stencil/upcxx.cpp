@@ -128,7 +128,7 @@ int main(int argc, char** argv)
         bool is_even_ts = (t & 1) == 0;
 
         if (proc_n > 1) {
-            std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
+            // std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
             stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g,
                                     n_local, n_ghost_offset);
         } // barrier
