@@ -21,7 +21,7 @@ def set_ax(df,ax,min,max):
 		a.set_ylabel('Throughput [GB/s]',fontsize=15)
 		a.set_xticks(range(0,13))
 		a.set_xticklabels(labels,rotation=45,fontsize=7)
-		a.set_ylim(min,max+10)
+		a.set_ylim(min,max+0.5)
 		#a.set_yscale('log')
 		a.legend(loc=2,prop={'size': 12})
 		if i == 0:
@@ -42,10 +42,10 @@ def plot_df(df1,df2):
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.
 #	Adjust the axes settings as needed (set_ax).
-	skl_shared = 'stencil-shared-skl.csv'
-	knl_shared = 'stencil-shared-knl.csv'
-	skl_dist = 'stencil-shared-skl.csv'
-	knl_dist = 'stencil-shared-knl.csv'
+	skl_shared = 'stencil-shared-skl-upcxx.csv'
+	knl_shared = 'stencil-shared-knl-upcxx.csv'
+	skl_dist = 'stencil-dist-skl-upcxx.csv'
+	knl_dist = 'stencil-dist-knl-upcxx.csv'
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')
 	shared = pd.concat([skl,knl])

@@ -129,7 +129,7 @@ int main(int argc, char** argv)
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
         double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
-        std::fprintf(stdout, "%d,%d,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, throughput, time);
+        std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%.12f,%.12f\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
     }
     if (write) {
         std::ofstream stream(file_path_steps, std::ofstream::trunc);

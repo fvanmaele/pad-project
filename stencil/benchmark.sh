@@ -92,5 +92,5 @@ fi
 # ---------------------------------------
 if (( run_upcxx_knl_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" \
-        upcxx-run -N 4 -n 4 -shared-heap 80% stencil/stencil-upcxx-knl
+        upcxx-run -N 4 -n 4 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-dist-knl-upcxx.csv
 fi

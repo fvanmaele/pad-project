@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     bool show_help = false;
     const char* file_path = "upcxx_stencil.txt";
     const char* file_path_steps = "upcxx_stencil_steps.txt";
+    const char* file_path_steps_cell = "upcxx_stencil_steps_cell.txt";
 
     index_t dim_x = 32;
     index_t dim_y = 32;
@@ -82,6 +83,10 @@ int main(int argc, char** argv)
     const index_t dim_zi = dim_z / proc_n;
     assert(dim_z == dim_zi * proc_n);
     const index_t n_block = dim_x * dim_y * dim_zi;
+
+    // Checks that the size of the ghost cells does not exceed the size of the process block
+    // (e.g. {4,4,4} with 4 processes (or {4,4,1} per process) and radius 2)
+    assert(dim_zi >= radius);
 
     // Add zero padding for ghost cells (communication) and neighbor access on the domain border.
     const index_t Nx = dim_x + 2*radius;
@@ -157,10 +162,11 @@ int main(int argc, char** argv)
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
         double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
-        std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
+        std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%.12f,%.12f\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
     }
     if (write) {
-        dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps);
+        dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps_cell, true);
+        dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps, false);
     }
     upcxx::finalize();
     // END PARALLEL REGION
