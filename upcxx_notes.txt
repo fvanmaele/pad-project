@@ -188,3 +188,6 @@ communication/computation: which cost dominates
 --- mapping
 
 place communicating tasks on same processor, or on processors close to eachother, to increase locality
+
+---
+

@@ -3,15 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 project(pad-project LANGUAGES CXX)
 
 find_package(Catch2 REQUIRED)
-find_package(fmt REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP 4.0 REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if (NOT DEFINED GCC_ARCH)
-    set(GCC_ARCH "native")
-endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 option(UPCXX_VERBOSE ON)
@@ -33,7 +29,7 @@ if(MSVC)
 
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(
-        -Wall -Wextra -Wpedantic -march=${GCC_ARCH}
+        -Wall -Wextra -Wpedantic
     )
     if(VECTORIZE_OPTS)
         add_compile_options(

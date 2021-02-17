@@ -38,8 +38,7 @@ met:
 #include <random>
 
 inline void
-stencil_init_data(int Nx, int Ny, int Nz,
-                  int radius, std::mt19937_64 &rgen,
+stencil_init_data(int Nx, int Ny, int Nz, int radius, std::mt19937_64 &rgen,
                   float *Veven, float *Vodd, float *Vsq)
 {
     // Current position when iterating over the (3-dimensional) array
@@ -57,7 +56,7 @@ stencil_init_data(int Nx, int Ny, int Nz,
                     z >= radius && z < Nz - radius)
                 {
                     Veven[offset] = dist1(rgen);
-                    Vodd[offset] = 0; // NOTE: already intialized by upcxx::new_array/std::vector to 0
+                    //Vodd[offset] = 0; // NOTE: already intialized by upcxx::new_array/std::vector to 0
                     Vsq[offset] = dist2(rgen);
                 }
             }

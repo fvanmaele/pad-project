@@ -30,7 +30,7 @@ stencil_get_ghost_cells(dist_ptr<float> &input_g, index_t n_local, index_t n_gho
 
     if (proc_id != 0) {
         upcxx::global_ptr<float> input_l = input_g.fetch(proc_id - 1).wait();
-        upcxx::rget(input_l + n_local - 2 * n_ghost_offset,
+        upcxx::rget(input_l + n_local - 2*n_ghost_offset,
                     input,
                     n_ghost_offset).wait();
     }

@@ -6,7 +6,6 @@
 #include <chrono>
 
 #include <lyra/lyra.hpp>
-#include <fmt/format.h>
 
 #include "include/upcxx.hpp"
 #include "include/stencil.hpp"
@@ -129,15 +128,17 @@ int main(int argc, char** argv)
         bool is_even_ts = (t & 1) == 0;
 
         if (proc_n > 1) {
-            fmt::print(stderr, "Retrieving ghost cells for {}, rank ({}/{}), step {}\n", "Veven", proc_id, proc_n, t);
-            stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g, n_local, n_ghost_offset);
+            std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
+            stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g,
+                                    n_local, n_ghost_offset);
         } // barrier
         stencil_parallel_step(radius, radius + dim_x,
                               radius, radius + dim_y,
                               radius, radius + dim_zi,
                               Nx, Ny, Nz, coeff, Vsq,
                               is_even_ts ? Veven : Vodd,
-                              is_even_ts ? Vodd : Veven, radius);
+                              is_even_ts ? Vodd : Veven, 
+                              radius);
 
         // Wait until all processes have finished calculations before proceeding to next step
         upcxx::barrier();
@@ -146,7 +147,8 @@ int main(int argc, char** argv)
     if (proc_id == 0 && bench) {
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
-        fmt::print("{:.12f}\n", time);
+        double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
+        std::fprintf(stdout, "%d,%d,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, throughput, time);
     }
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps);

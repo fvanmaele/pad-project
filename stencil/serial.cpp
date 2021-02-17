@@ -5,9 +5,8 @@
 #include <vector>
 #include <fstream>
 #include <cassert>
-
+#include <cstdio>
 #include <lyra/lyra.hpp>
-#include <fmt/format.h>
 
 #include "include/stencil.hpp"
 
@@ -94,7 +93,6 @@ int main(int argc, char** argv)
 
     // FDTD
     std::mt19937_64 rgen(seed);
-    std::uniform_real_distribution<float> dis(0.0, 1.0);
     std::vector<float> Veven(N);
     std::vector<float> Vodd(N);
     std::vector<float> Vsq(N);
@@ -130,7 +128,8 @@ int main(int argc, char** argv)
     if (bench) {
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
-        fmt::print("{:.12f}\n", time);
+        double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
+        std::fprintf(stdout, "%d,%d,%d,%d,%f.12,%f.12\n", dim_x, dim_y, dim_z, steps, throughput, time);
     }
     if (write) {
         std::ofstream stream(file_path_steps, std::ofstream::trunc);
