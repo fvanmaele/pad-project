@@ -24,9 +24,10 @@ int main(int argc, char** argv)
     int iterations = 1; // repeats when using benchmark
     bool bench = false;
     bool write = false;
+    bool show_help = false;
 
     auto cli = lyra::help(show_help) |
-        lyra::opt(size, "size")["-N"]["--size"](
+        lyra::opt(N, "size")["-N"]["--size"](
             "Size of reduced array, must be specified") |
         lyra::opt(iterations, "iterations")["--iterations"](
             "Number of iterations, default is 1") |

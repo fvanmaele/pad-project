@@ -1,55 +1,49 @@
-#include <ios>
 #include <iostream>
 #include <random>
+#include <cstdio>
+#include <cstddef>
 #include <string>
 #include <algorithm>
 #include <vector>
 #include <chrono>
 
-#include <cstdlib>
-#include <getopt.h>
+#include <lyra/lyra.hpp>
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
-template <typename T>
-using timePoint = std::chrono::time_point<T>;
 
+template <typename T>
+using time_point = std::chrono::time_point<T>;
+using index_t = std::ptrdiff_t;
 
 int main(int argc, char** argv) {
-    int64_t N = 0;     // array size
+    index_t N = 0;     // array size
     int seed = 42;  // seed for pseudo-random generator
     bool bench = false;
     bool write = false;
+    bool show_help = false;
 
-    struct option long_options[] = {
-        { "size", required_argument, NULL, 's' },
-        { "seed", required_argument, NULL, 't' },
-        { "bench", no_argument, NULL, 'b' },
-        { "write", no_argument, NULL, 'w' },
-        { NULL, 0, NULL, 0 }
-    };
+    auto cli = lyra::help(show_help) |
+        lyra::opt(N, "size")["-N"]["--size"](
+            "Size of reduced array, must be specified") |
+        lyra::opt(seed, "seed")["--seed"](
+            "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(bench)["--bench"](
+            "Enable benchmarking") |
+        lyra::opt(write)["--write"](
+            "Print reduction value to standard output");
+    auto result = cli.parse({argc, argv});
+    
+    if (!result) {
+		std::cerr << "Error in command line: " << result.errorMessage()
+			  << std::endl;
+		exit(1);
+	}
+	if (show_help) {
+		std::cout << cli << std::endl;
+		exit(0);
+	}
 
-    int c;
-    while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
-        switch(c) {
-            case 's':
-                N = std::stoll(optarg);
-                break;
-            case 't':
-                seed = std::stoi(optarg);
-                break;
-            case 'b':
-                bench = true;
-                break;
-            case 'w':
-                write = true;
-                break;
-            case '?':
-                break;
-            default:
-                std::terminate();
-        }
-    }
     if (N <= 0) {
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
@@ -61,7 +55,7 @@ int main(int argc, char** argv) {
         return 0.5 + rgen() % 100;
     });
 
-    timePoint<Clock> t; 
+    time_point<Clock> t; 
     if (bench) {
         t = Clock::now();
     }
@@ -70,9 +64,10 @@ int main(int argc, char** argv) {
     if (bench) {
         Duration d = Clock::now() - t;
         double time = d.count(); // time in seconds
-        std::cout << std::fixed << time << std::endl;
+        double throughput = N * sizeof(float) * 1e-9 / time;
+        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
     }
     if (write) {
-        std::cout << std::defaultfloat << res << std::endl;
+        std::cout << res << std::endl;
     }
 }
