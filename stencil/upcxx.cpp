@@ -161,7 +161,8 @@ int main(int argc, char** argv)
     if (proc_id == 0 && bench) {
         Duration d = Clock::now() -t;
         double time = d.count(); // time in seconds
-        double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
+        // double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
+        double throughput = steps * sizeof(float) * (dim_x * dim_y * dim_z * (2 + 2*3*radius) - 2*radius*(dim_x * dim_y + dim_y * dim_z + dim_x * dim_z)) * 1e-9 / time;
         std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%.12f,%.12f\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
     }
     if (write) {

@@ -8,7 +8,7 @@ type ninja
 # Benchmark parameters
 min=32
 max=512
-radius=4 # default values from sample benchmark script
+radius=2 # default values from sample benchmark script
 steps=5
 iterations=4 # TODO
 
@@ -22,6 +22,7 @@ cmake() {
     command cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE="$HOME/source/vcpkg/scripts/buildsystems/vcpkg.cmake" "$@"
 }
 
+# XXX: set process amount depending on z-dimension and radius (-n $..)
 bench() {
     local x=$min 
     local y=$min 
@@ -70,7 +71,7 @@ fi
 # ---------------------------------------
 if (( run_upcxx_knl )); then
     bench srun -w 'mp-knl1' \
-        upcxx-run -n 4 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-shared-knl-upcxx.csv
+        upcxx-run -n 16 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-shared-knl-upcxx.csv
 fi
 
 # ---------------------------------------
@@ -84,7 +85,7 @@ ninja -v
 
 if (( run_upcxx_media_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" \
-        upcxx-run -N 4 -n 4 -shared-heap 80% stencil/stencil-upcxx-skl > stencil-dist-skl-upcxx.csv
+        upcxx-run -N 4 -n 16 -shared-heap 80% stencil/stencil-upcxx-skl > stencil-dist-skl-upcxx.csv
 fi
 
 # ---------------------------------------
@@ -92,5 +93,5 @@ fi
 # ---------------------------------------
 if (( run_upcxx_knl_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" \
-        upcxx-run -N 4 -n 4 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-dist-knl-upcxx.csv
+        upcxx-run -N 4 -n 64 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-dist-knl-upcxx.csv
 fi

@@ -15,9 +15,6 @@ target_include_directories(stencil-upcxx PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
 target_link_libraries(stencil-upcxx
     PRIVATE 
         UPCXX::upcxx)
-target_compile_options(stencil-upcxx
-    PRIVATE 
-        -march=native)
 
 add_executable(stencil-upcxx-skl "upcxx.cpp")
 target_include_directories(stencil-upcxx-skl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})

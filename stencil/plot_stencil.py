@@ -21,7 +21,7 @@ def set_ax(df,ax,min,max):
 		a.set_ylabel('Throughput [GB/s]',fontsize=15)
 		a.set_xticks(range(0,13))
 		a.set_xticklabels(labels,rotation=45,fontsize=7)
-		a.set_ylim(min,max+0.5)
+		a.set_ylim(min,max+10)
 		#a.set_yscale('log')
 		a.legend(loc=2,prop={'size': 12})
 		if i == 0:
