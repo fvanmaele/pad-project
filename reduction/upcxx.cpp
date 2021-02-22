@@ -1,126 +1,128 @@
-#include <ios>
 #include <iostream>
 #include <random>
 #include <cassert>
-#include <utility>
+#include <cstddef>
+#include <cstdio>
 #include <string>
 #include <chrono>
+#include <vector>
 
-#include <cstdlib>
-#include <getopt.h>
+#include <lyra/lyra.hpp>
 #include <upcxx/upcxx.hpp>
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
-template <typename T>
-using timePoint = std::chrono::time_point<T>;
 
+template <typename T>
+using time_point = std::chrono::time_point<T>;
+using index_t = std::ptrdiff_t;
 
 int main(int argc, char** argv) 
 {
-    int64_t N = 0;     // array size
-    int seed = 42;  // seed for pseudo-random generator
+    index_t N = 0; // array size
+    int seed = 42; // seed for pseudo-random generator
+    int iterations = 1; // repeats when using benchmark
     bool bench = false;
     bool write = false;
 
-    struct option long_options[] = {
-        { "size", required_argument, NULL, 's' },
-        { "seed", required_argument, NULL, 't' },
-        { "bench", no_argument, NULL, 'b' },
-        { "write", no_argument, NULL, 'w' },
-        { NULL, 0, NULL, 0 }
-    };
-
-    int c;
-    while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
-        switch(c) {
-            case 's':
-                N = std::stoll(optarg);
-                break;
-            case 't':
-                seed = std::stoi(optarg);
-                break;
-            case 'b':
-                bench = true;
-                break;
-            case 'w':
-                write = true;
-                break;
-            case '?':
-                break;
-            default:
-                std::terminate();
-        }
-    }
+    auto cli = lyra::help(show_help) |
+        lyra::opt(size, "size")["-N"]["--size"](
+            "Size of reduced array, must be specified") |
+        lyra::opt(iterations, "iterations")["--iterations"](
+            "Number of iterations, default is 1") |
+        lyra::opt(seed, "seed")["--seed"](
+            "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(bench)["--bench"](
+            "Enable benchmarking") |
+        lyra::opt(write)["--write"](
+            "Print reduction value to standard output");
+    auto result = cli.parse({argc, argv});
+    
+    if (!result) {
+		std::cerr << "Error in command line: " << result.errorMessage()
+			  << std::endl;
+		exit(1);
+	}
+	if (show_help) {
+		std::cout << cli << std::endl;
+		exit(0);
+	}
     if (N <= 0) {
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
     }
+
     // BEGIN PARALLEL REGION
     upcxx::init();
     int nproc = upcxx::rank_n();
     int proc_id = upcxx::rank_me();
 
     // Block size for each process
-    const int64_t block_size = N / nproc;
+    const index_t block_size = N / nproc;
     assert(block_size % 2 == 0);
     assert(N == block_size * nproc);
 
     // Initialize array, with blocks divided between processes
-    upcxx::global_ptr<float> u_g(upcxx::new_array<float>(block_size));
-    assert(u_g.is_local()); // ensure global pointer has affinity to a local process
-    float* u = u_g.local(); // downcast to local pointer
+    std::vector<float> u(block_size);
 
-    // Fill with random values (using discard to ensure pseudo-random values
-    // across the full array)
+    // Fill with random values (consistent with sequential version)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * block_size);
-    for (int64_t i = 0; i < block_size; ++i) {
+    for (index_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // BEGIN TIMING - reduction
-    timePoint<Clock> t{};
-    if (proc_id == 0 && bench) {
-        // Timing is done on the master process only (as this is where the final reduction
-        // of partial sums will take place)
-        t = Clock::now();
-    }
-    
     // Create a reduction value for each process (universal name, local value).
     // Each local value can be accessed with operator* or operator->, but there
     // is no guarantee that every local value is constructed after the call.
     upcxx::dist_object<double> psum_d(0);
     upcxx::barrier();
-
-    // Compute partial sums and ensure they are available
-    for (int64_t i = 0; i < block_size; ++i) {
-        *psum_d += u[i];
-    }
-    upcxx::barrier();
-
-    // Reduce partial sums through dist_object::fetch (communication) on master process.
-    // Alternative (with reduction in random order): upcxx::reduce_all() or reduce_one()
-    if (proc_id == 0) {
-        // partial sum for process 0
-        double res(*psum_d);
-
-        // partial sums for remaining processes (in ascending order)
-        for (int k = 1; k < upcxx::rank_n(); ++k) {
-            double psum = psum_d.fetch(k).wait();
-            res += psum;
+    
+    double time = 0;
+    for (int iter = 1; iter <= iterations; ++iter) {
+        time_point<Clock> t{};
+        // Timing is done on process 0 only (as this is where the final reduction
+        // of partial sums will take place)
+        if (proc_id == 0) {
+            t = Clock::now();
         }
-        if (bench) {
-            // END TIMING - reduction
+
+        // Compute partial sums and assign to local value of distributed object
+        double psum(0);
+        for (index_t i = 0; i < block_size; ++i) {
+            psum += u[i];
+        }
+        *psum_d = psum;
+
+        // Communicate partial sums asynchronously
+        if (proc_id == 0) {
+            // Partial sum for process 0
+            double result = *psum_d;
+
+            // XXX; While UPCXX supports a "promise" mechanism to track completions, it is not compatible
+            // to distributed objects. As a workaround, spawn and retrieve values in two seperate loops.
+            // See: https://bitbucket.org/berkeleylab/upcxx/issues/452/use-of-promises-with-dist_object-rpc
+            std::vector<upcxx::future<double>> futures;
+
+            for (int k = 1; k < nproc; ++k) {
+                futures.push_back(std::move(psum_d.fetch(k)));
+            }
+            for (int k = 1; k < nproc; ++k) {
+                result += futures[k-1].wait();
+            }          
             Duration d = Clock::now() - t;
-            double time = d.count(); // time in seconds
-            std::cout << std::fixed << time << std::endl;
-        }
-        if (write) {
-            std::cout << std::defaultfloat << res << std::endl;
+            time += d.count(); // time in seconds
+
+            if (write) {
+                std::cout << result << std::endl;
+            }
         }
     }
-    upcxx::delete_array(u_g);
+    if (proc_id == 0 && bench) {
+        time /= iterations;
+        double throughput = N * sizeof(float) * 1e-9 / time;
+        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+    }
 
     upcxx::finalize();
     // END PARALLEL REGION
