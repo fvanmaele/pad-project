@@ -9,25 +9,16 @@ find_package(OpenMP 4.0 REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 option(UPCXX_VERBOSE ON)
 if (NOT DEFINED ENV{UPCXX_INSTALL})
     set(ENV{UPCXX_INSTALL} "/usr/local/upcxx")  # default install path
 endif()
+list(APPEND CMAKE_MODULE_PATH "$ENV{UPCXX_INSTALL}/share/cmake")
 find_package(UPCXX REQUIRED)
 
 OPTION(VECTORIZE_OPTS "Additional options for SIMD (vectorization)" OFF)
 
-if(MSVC)
-    add_compile_options(/W4)
-    if(STDLIB_DEBUG_MODE)
-        add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:_ITERATOR_DEBUG_LEVEL=1>")
-    endif()
-    if(VECTORIZE_OPTS)
-        add_compile_options(/arch:AVX512)
-    endif()
-
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(
         -Wall -Wextra -Wpedantic
     )
