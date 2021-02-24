@@ -59,27 +59,53 @@ target_compile_options(reduction-upcxx-knl
         -march=knl)
 
 
-# Hybrid implementation (UPCXX for communication, OpenMP for threading)        
-add_executable(reduction-hybrid "upcxx_openmp.cpp")
-target_include_directories(reduction-hybrid PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
-target_link_libraries(reduction-hybrid
-    PRIVATE
-    OpenMP::OpenMP_CXX UPCXX::upcxx)
-
-add_executable(reduction-hybrid-skl "upcxx_openmp.cpp")
-target_include_directories(reduction-hybrid-skl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
-target_link_libraries(reduction-hybrid-skl
-    PRIVATE
-    OpenMP::OpenMP_CXX UPCXX::upcxx)
-target_compile_options(reduction-hybrid-skl 
+# UPCXX implementation (built-in reduction operator)
+add_executable(reduction-upcxx-builtin "upcxx_builtin.cpp")
+target_include_directories(reduction-upcxx-builtin PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-builtin
+    PRIVATE 
+        UPCXX::upcxx)
+  
+add_executable(reduction-upcxx-builtin-skl "upcxx_builtin.cpp")
+target_include_directories(reduction-upcxx-builtin-skl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-builtin-skl
+    PRIVATE 
+        UPCXX::upcxx)
+target_compile_options(reduction-upcxx-builtin-skl
     PRIVATE 
         -march=skylake)
 
-add_executable(reduction-hybrid-knl "upcxx_openmp.cpp")
-target_include_directories(reduction-hybrid-knl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
-target_link_libraries(reduction-hybrid-knl
+add_executable(reduction-upcxx-builtin-knl "upcxx_builtin.cpp")
+target_include_directories(reduction-upcxx-builtin-knl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-builtin-knl
+    PRIVATE 
+        UPCXX::upcxx)
+target_compile_options(reduction-upcxx-builtin-knl
+    PRIVATE 
+        -march=knl)
+
+
+# UPCXX + OpenMP implementation
+add_executable(reduction-upcxx-openmp "upcxx_openmp.cpp")
+target_include_directories(reduction-upcxx-openmp PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-openmp
     PRIVATE
     OpenMP::OpenMP_CXX UPCXX::upcxx)
-target_compile_options(reduction-hybrid-knl 
+
+add_executable(reduction-upcxx-openmp-skl "upcxx_openmp.cpp")
+target_include_directories(reduction-upcxx-openmp-skl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-openmp-skl
+    PRIVATE
+    OpenMP::OpenMP_CXX UPCXX::upcxx)
+target_compile_options(reduction-upcxx-openmp-skl 
+    PRIVATE 
+        -march=skylake)
+
+add_executable(reduction-upcxx-openmp-knl "upcxx_openmp.cpp")
+target_include_directories(reduction-upcxx-openmp-knl PRIVATE ${BFGROUP_LYRA_INCLUDE_DIRS})
+target_link_libraries(reduction-upcxx-openmp-knl
+    PRIVATE
+    OpenMP::OpenMP_CXX UPCXX::upcxx)
+target_compile_options(reduction-upcxx-openmp-knl 
     PRIVATE 
         -march=knl)

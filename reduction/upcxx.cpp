@@ -73,12 +73,6 @@ int main(int argc, char** argv)
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // Create a reduction value for each process (universal name, local value).
-    // Each local value can be accessed with operator* or operator->, but there
-    // is no guarantee that every local value is constructed after the call.
-    upcxx::dist_object<double> psum_d(0);
-    upcxx::barrier();
-    
     double time = 0;
     for (int iter = 1; iter <= iterations; ++iter) {
         time_point<Clock> t{};
@@ -93,15 +87,15 @@ int main(int argc, char** argv)
         for (index_t i = 0; i < block_size; ++i) {
             psum += u[i];
         }
-        *psum_d = psum;
+        upcxx::dist_object<double> psum_d(psum);
+        upcxx::barrier();
 
         // Communicate partial sums asynchronously
         if (proc_id == 0) {
-            // Partial sum for process 0
             double result = *psum_d;
 
-            // XXX; While UPCXX supports a "promise" mechanism to track completions, it is not compatible
-            // to distributed objects. As a workaround, spawn and retrieve values in two seperate loops.
+            // Instead of spawning and retrieving values in two separate loops, we could use the "promise"
+            // mechanism to track completions.
             // See: https://bitbucket.org/berkeleylab/upcxx/issues/452/use-of-promises-with-dist_object-rpc
             std::vector<upcxx::future<double>> futures;
 
