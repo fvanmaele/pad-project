@@ -73,17 +73,16 @@ int main(int argc, char** argv)
         u[i] = 0.5 + rgen() % 100;
     }
 
-    double time = 0;
-    for (int iter = 1; iter <= iterations; ++iter) {
-        time_point<Clock> t{};
-        // Timing is done on process 0 only (as this is where the final reduction
-        // of partial sums will take place)
-        if (proc_id == 0) {
-            t = Clock::now();
-        }
-
+    // Timings for different iterations; the mean is taken later.
+    std::vector<double> vt;
+    vt.reserve(iterations);
+    
+    for (int iter = 1; iter <= iterations; ++iter) 
+    {
         // Compute partial sums and reduce with built-in method
+        time_point<Clock> t = Clock::now();
         double psum(0);
+
         for (index_t i = 0; i < block_size; ++i) {
             psum += u[i];
         }
@@ -91,7 +90,8 @@ int main(int argc, char** argv)
 
         if (proc_id == 0) {
             Duration d = Clock::now() - t;
-            time += d.count(); // time in seconds
+            double time = d.count(); // time in seconds
+            vt.push_back(time);
 
             if (write) {
                 std::cout << result << std::endl;
@@ -99,9 +99,10 @@ int main(int argc, char** argv)
         }
     }
     if (proc_id == 0 && bench) {
-        time /= iterations;
-        double throughput = N * sizeof(float) * 1e-9 / time;
-        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        for (auto&& time: vt) {
+            double throughput = N * sizeof(float) * 1e-9 / time;
+            std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        }
     }
 
     upcxx::finalize();

@@ -69,54 +69,62 @@ int main(int argc, char** argv)
     // Fill with random values (consistent with sequential version)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * block_size);
+
     for (index_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
 
-    double time = 0;
-    for (int iter = 1; iter <= iterations; ++iter) {
-        time_point<Clock> t{};
-        // Timing is done on process 0 only (as this is where the final reduction
-        // of partial sums will take place)
-        if (proc_id == 0) {
-            t = Clock::now();
-        }
+    // According to 14.3 (Specification), the name carried by the distributed object (here psum_d)
+    // may not exist yet in all processes after the call. To avoid this, we use the described
+    // "asynchronous point-to-point" approach, implicitly used when dist_object<T>& arguments
+    // are given to an RPC (in particular, dist_object::fetch).
+    upcxx::dist_object<double> psum_d(0);
 
+    // Timings for different iterations; the mean is taken later.
+    std::vector<double> vt;
+    vt.reserve(iterations);
+
+    for (int iter = 1; iter <= iterations; ++iter)
+    {
+        // To reduce latency, we spawn and retrieve values in two separate loops. An alternative
+        // is to use the upcxx "promise" mechanism for tracking completions.
+        // See: https://bitbucket.org/berkeleylab/upcxx/issues/452/use-of-promises-with-dist_object-rpc
+        std::vector<upcxx::future<double>> futures;
+        futures.reserve(nproc);
+        
         // Compute partial sums and assign to local value of distributed object
+        time_point<Clock> t = Clock::now();
         double psum(0);
+
         for (index_t i = 0; i < block_size; ++i) {
             psum += u[i];
         }
-        upcxx::dist_object<double> psum_d(psum);
-        upcxx::barrier();
+        *psum_d = psum;
 
-        // Communicate partial sums asynchronously
         if (proc_id == 0) {
             double result = *psum_d;
 
-            // Instead of spawning and retrieving values in two separate loops, we could use the "promise"
-            // mechanism to track completions.
-            // See: https://bitbucket.org/berkeleylab/upcxx/issues/452/use-of-promises-with-dist_object-rpc
-            std::vector<upcxx::future<double>> futures;
-
             for (int k = 1; k < nproc; ++k) {
-                futures.push_back(std::move(psum_d.fetch(k)));
+                futures.push_back(std::move(psum_d.fetch(k))); // asynchronous point-to-point
             }
             for (int k = 1; k < nproc; ++k) {
                 result += futures[k-1].wait();
             }          
             Duration d = Clock::now() - t;
-            time += d.count(); // time in seconds
+            double time = d.count(); // time in seconds
+            vt.push_back(time);
 
             if (write) {
                 std::cout << result << std::endl;
             }
         }
+        upcxx::barrier();
     }
     if (proc_id == 0 && bench) {
-        time /= iterations;
-        double throughput = N * sizeof(float) * 1e-9 / time;
-        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        for (auto&& time: vt) {
+            double throughput = N * sizeof(float) * 1e-9 / time;
+            std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        }
     }
 
     upcxx::finalize();

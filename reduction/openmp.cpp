@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     index_t N = 0; // array size
     int seed = 42; // seed for pseudo-random generator
     int iterations = 1;
+    int threads = omp_get_num_threads();
     bool bench = false;
     bool write = false;
     bool show_help = false;
@@ -31,6 +32,8 @@ int main(int argc, char** argv) {
             "Number of iterations, default is 1") |
         lyra::opt(seed, "seed")["--seed"](
             "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(threads, "threads")["-n"]["--threads"](
+            "Number of threads, default is omp_get_num_threads()") |
         lyra::opt(bench)["--bench"](
             "Enable benchmarking") |
         lyra::opt(write)["--write"](
@@ -58,13 +61,10 @@ int main(int argc, char** argv) {
 
 #pragma omp parallel firstprivate(rgen)
 {
-    int nthreads = omp_get_num_threads();
-    int thread_id = omp_get_thread_num();
-    
-    index_t block_size = N / nthreads;
-    assert(N == block_size * nthreads);
+    index_t block_size = N / threads;
+    assert(N == block_size * threads);
 
-    rgen.discard(block_size * thread_id); // advance pseudo-random number generator
+    rgen.discard(block_size * omp_get_thread_num()); // advance pseudo-random number generator
 
 #pragma omp for schedule(static)
     for (index_t i = 0; i < N; ++i) {
