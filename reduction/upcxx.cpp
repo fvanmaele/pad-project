@@ -107,6 +107,7 @@ int main(int argc, char** argv)
             double time = d.count(); // time in seconds
             vt.push_back(time);
 
+            // Verify against serial implementation
             if (std::abs(sum - sum_serial) > std::numeric_limits<double>::epsilon()) {
                 std::string err = "iteration " + std::to_string(iter) + ": parallel and serial sum mismatch";
                 throw std::logic_error(err);
@@ -114,10 +115,11 @@ int main(int argc, char** argv)
         }
     }
     if (proc_id == 0) {
-        for (auto&& time: vt) {
-            double throughput = N * sizeof(float) * 1e-9 / time;
-            std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
-        }
+        double time = std::accumulate(vt.begin(), vt.end(), 0.);
+        time /= vt.size(); // average time
+
+        double throughput = N * sizeof(float) * 1e-9 / time;
+        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
     }
     upcxx::finalize();
     // END PARALLEL REGION
