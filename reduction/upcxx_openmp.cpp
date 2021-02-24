@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <cstddef>
@@ -73,11 +74,8 @@ int main(int argc, char** argv)
 
     // Block size for each process
     const index_t block_size = N / nproc;
-
-    if (block_size % 2 != 0)
-        throw std::invalid_argument("block size must be even");
-    if (N != block_size * nproc)
-        throw std::invalid_argument("array cannot be divided in same-sized blocks");
+    assert(block_size % 2 == 0);
+    assert(N == block_size * nproc);
 
     // Allocate array, with blocks divided between processes
     float* u = new float[N];
@@ -88,14 +86,9 @@ int main(int argc, char** argv)
 {
     const int threads = omp_get_num_threads();
     const index_t block_size_omp = block_size / threads;
+    assert(block_size_omp % 2 == 0);
+    assert(block_size == block_size_omp * threads);
 
-#pragma omp master
-{
-    if (block_size_omp % 2 != 0)
-        throw std::invalid_argument("block size must be even (thread-local)");
-    if (block_size != block_size_omp * threads)
-        throw std::invalid_argument("array cannot be divided in same-sized blocks (thread-local)");
-}
     rgen.discard((proc_id * threads + omp_get_thread_num()) * block_size_omp);
 
     // Initialize vector with pseudo-random values (consistent with serial version)

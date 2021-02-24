@@ -1,21 +1,22 @@
 #include <random>
-#include <ios>
 #include <iostream>
 #include <cassert>
+#include <cstddef>
+#include <cstdio>
 #include <utility>
 #include <string>
 #include <fstream>
 #include <chrono>
+#include <vector>
 
-#include <cstdlib>
-#include <getopt.h>
 #include <upcxx/upcxx.hpp>
+#include <lyra/lyra.hpp>
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
 
 template <typename T>
-using timePoint = std::chrono::time_point<T>;
+using time_point = std::chrono::time_point<T>;
 using index_t = std::ptrdiff_t;
 
 template <typename T>
@@ -111,6 +112,7 @@ int main(int argc, char **argv)
     // - one holding the diagonal.
     //
     // Symmetrization does not modify the diagonal, so it could be left out.
+    // XXX: use std::vector
     upcxx::global_ptr<float> lower_g(upcxx::new_array<float>(triangle_n));
     upcxx::global_ptr<float> upper_g(upcxx::new_array<float>(triangle_n));
     upcxx::global_ptr<float> diag_g(upcxx::new_array<float>(diagonal_n));
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
         dump_array_in_rank_order(ofs, upper, triangle_n, "UPPER (R-m): ");
     }
 
-    timePoint<Clock> t;
+    time_point<Clock> t;
     if (bench && proc_id == 0) { // measure on single thread
         t = Clock::now();
     }

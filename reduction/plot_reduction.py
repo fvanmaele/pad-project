@@ -40,15 +40,15 @@ def plot_df(df1,df2):
 if __name__ == "__main__":
 #       Usage: Update the path to the CSV files accordingly.
 #       Adjust the axes settings as needed (set_ax).
-        skl_shared = 'csv/reduction-skl-shared-upcxx-4.csv'
-        knl_shared = 'csv/reduction-knl-shared-upcxx-64.csv'
-        skl_dist = 'csv/reduction-skl-dist-upcxx-16.csv'
-        knl_dist = 'csv/reduction-knl-dist-upcxx-256.csv'
+        skl_shared = 'reduction-shared-skl-upcxx.csv'
+        knl_shared = 'reduction-shared-knl-upcxx.csv'
+        skl_dist = 'reduction-dist-skl-upcxx.csv'
+        knl_dist = 'reduction-dist-knl-upcxx.csv'
 
-#        skl_shared = 'csv/reduction-skl-shared-openmp-4.csv'
-#        knl_shared = 'csv/reduction-knl-shared-openmp-64.csv'
-#        skl_dist = 'csv/reduction-skl-dist-upcxx-16.csv'
-#        knl_dist = 'csv/reduction-knl-dist-upcxx-64.csv'
+#        skl_shared = 'reduction-shared-skl-upcxx-openmp.csv'
+#        knl_shared = 'reduction-shared-knl-upcxx-openmp.csv'
+#        skl_dist = 'reduction-dist-skl-upcxx-openmp.csv'
+#        knl_dist = 'reduction-dist-knl-upcxx-openmp.csv'
 
         skl = build_df(skl_shared,'Media')
         knl = build_df(knl_shared,'Knl')
