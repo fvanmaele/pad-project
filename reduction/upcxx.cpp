@@ -3,9 +3,12 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
+#include <cmath>
 #include <string>
 #include <chrono>
 #include <vector>
+#include <algorithm>
+#include <limits>
 
 #include <lyra/lyra.hpp>
 #include <upcxx/upcxx.hpp>
@@ -22,8 +25,6 @@ int main(int argc, char** argv)
     index_t N = 0; // array size
     int seed = 42; // seed for pseudo-random generator
     int iterations = 1; // repeats when using benchmark
-    bool bench = false;
-    bool write = false;
     bool show_help = false;
 
     auto cli = lyra::help(show_help) |
@@ -32,11 +33,7 @@ int main(int argc, char** argv)
         lyra::opt(iterations, "iterations")["--iterations"](
             "Number of iterations, default is 1") |
         lyra::opt(seed, "seed")["--seed"](
-            "Seed for pseudo-random number generation, default is 42") |
-        lyra::opt(bench)["--bench"](
-            "Enable benchmarking") |
-        lyra::opt(write)["--write"](
-            "Print reduction value to standard output");
+            "Seed for pseudo-random number generation, default is 42");
     auto result = cli.parse({argc, argv});
     
     if (!result) {
@@ -51,6 +48,21 @@ int main(int argc, char** argv)
     if (N <= 0) {
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
+    }
+
+    // Sequential reduction for comparison with parallel reduction
+    double sum_serial;
+    {
+        std::vector<float> v(N);
+        std::mt19937_64 rgen(seed);
+        std::generate(v.begin(), v.end(), [&rgen]() {
+            return 0.5 + rgen() % 100;
+        });
+
+        // Use a reduction value with higher precision than the input values for improved
+        // numerical stability. An alternative (for a `float` reduction value) is pairwise
+        // or Kahan summation.
+        sum_serial = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
     }
 
     // BEGIN PARALLEL REGION
@@ -69,64 +81,44 @@ int main(int argc, char** argv)
     // Fill with random values (consistent with sequential version)
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * block_size);
-
     for (index_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
     }
 
-    // According to 14.3 (Specification), the name carried by the distributed object (here psum_d)
-    // may not exist yet in all processes after the call. To avoid this, we use the described
-    // "asynchronous point-to-point" approach, implicitly used when dist_object<T>& arguments
-    // are given to an RPC (in particular, dist_object::fetch).
-    upcxx::dist_object<double> psum_d(0);
-
     // Timings for different iterations; the mean is taken later.
     std::vector<double> vt;
     vt.reserve(iterations);
-
-    for (int iter = 1; iter <= iterations; ++iter)
+    
+    for (int iter = 1; iter <= iterations; ++iter) 
     {
-        // To reduce latency, we spawn and retrieve values in two separate loops. An alternative
-        // is to use the upcxx "promise" mechanism for tracking completions.
-        // See: https://bitbucket.org/berkeleylab/upcxx/issues/452/use-of-promises-with-dist_object-rpc
-        std::vector<upcxx::future<double>> futures;
-        futures.reserve(nproc);
-        
-        // Compute partial sums and assign to local value of distributed object
+        // Set a barrier before doing any timing
+        upcxx::barrier();
         time_point<Clock> t = Clock::now();
+        
+        // Compute partial sums and reduce on process 0
         double psum(0);
-
         for (index_t i = 0; i < block_size; ++i) {
             psum += u[i];
         }
-        *psum_d = psum;
+        double sum = upcxx::reduce_one(psum, upcxx::op_fast_add, 0).wait();
 
         if (proc_id == 0) {
-            double result = *psum_d;
-
-            for (int k = 1; k < nproc; ++k) {
-                futures.push_back(std::move(psum_d.fetch(k))); // asynchronous point-to-point
-            }
-            for (int k = 1; k < nproc; ++k) {
-                result += futures[k-1].wait();
-            }          
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
             vt.push_back(time);
 
-            if (write) {
-                std::cout << result << std::endl;
+            if (std::abs(sum - sum_serial) > std::numeric_limits<double>::epsilon()) {
+                std::string err = "iteration " + std::to_string(iter) + ": parallel and serial sum mismatch";
+                throw std::logic_error(err);
             }
         }
-        upcxx::barrier();
     }
-    if (proc_id == 0 && bench) {
+    if (proc_id == 0) {
         for (auto&& time: vt) {
             double throughput = N * sizeof(float) * 1e-9 / time;
             std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
         }
     }
-
     upcxx::finalize();
     // END PARALLEL REGION
 }
