@@ -1,6 +1,8 @@
 - [Introduction](#introduction)
 - [Comparison to serial implementation](#comparison-to-serial-implementation)
 - [Parallel implementation](#parallel-implementation)
+  - [Tasks](#tasks)
+  - [Implementation](#implementation)
 - [Benchmarks](#benchmarks)
 
 ## Introduction
@@ -26,21 +28,31 @@ For simplicity, we have opted for the first approach.
 std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
 ```
 
-The array is filled with pseudo-random values using `std::mt19937_64` and a fixed seed. To ensure consistency with the serial implementation, the parallel implementation uses `std::mt19937_64::discard` for each process (see [Parallel implementation](#parallel-implementation).) Reduction values are then compared by printing them to standard output.
+The array is filled with pseudo-random values using `std::mt19937_64` and a fixed seed. To ensure consistency with the serial implementation, the parallel implementation uses `std::mt19937_64::discard` for each process (see [Parallel implementation](#parallel-implementation).) Reduction values are then compared by printing them to standard output (implicity using rounding from `std::cout`).
 
 ## Parallel implementation
+
+### Tasks 
 
 For the parallel implementation, we have two main concepts of "tasks":
 
 * UPCXX *process*, which can locally on a shared memory system or distributed on a cluster;
 * OpenMP *threads*, which are local to an UPCXX process.
 
----
-**Note:** The main reason for combining threads with processes is that processes require *communication*. If we wish to increase the amount of parallelism, this may thus result in additional overhead, especially if processes are located on different nodes and have to communicate over the network. 
+The main reason for combining threads with processes is that processes require *communication*. If we wish to increase the amount of parallelism, this may thus result in additional overhead, especially if processes are located on different nodes and have to communicate over the network. 
 
 While UPCXX provides additional mechanisms to reduce this overhead (i.e. `upcxx::broadcast()` and `upcxx::local_team()`), a simple way is to use a single UPCXX process per node, and a fixed amount of OpenMP threads per process. Refer to the [Benchmarks](#benchmarks) section for details.
 
----
+**Important:** upcxx collectives (e.g. `upcxx::barrier`, `upcxx::reduce_one`) should only be called by the "master persona" thread, i.e. the (single) thread that called `upcxx::init`. This can be done with `#pragma omp master` inside an OpenMP parallel region, or by using multiple OpenMP regions. 
+
+For simplicity, we assume thread affinity holds between regions (i.e. `OMP_PROC_BIND` is set to `TRUE`) and used the latter approach:
+```bash
+export OMP_PLACES=cores
+export OMP_PROC_BIND=true
+```
+
+### Implementation
+
 The implementation first divides an array of size `N` evenly between processes and threads:
 ```c++
 std::ptrdiff_t block_size = N / upcxx::rank_n();
@@ -52,7 +64,6 @@ where we assume (and check) the division is without remainder. As in the serial 
 std::mt19937_64 rgen(seed);
 rgen.discard((upcxx::rank_me() * omp_get_num_threads() + omp_get_thread_num()) * block_size_omp);
 
-// Initialize vector with pseudo-random values (consistent with serial version)
 #pragma omp for schedule(static)
     for (index_t i = 0; i < block_size; ++i) {
         u[i] = 0.5 + rgen() % 100;
@@ -84,7 +95,7 @@ double sum = upcxx::reduce_one(psum, upcxx::op_fast_add, 0).wait();
 // Assign partial sum to distributed object (universal name, local value)
 upcxx::dist_object<double> psum_d(psum);
 
-// Reduce partial sums in ascending order on first process.
+// Reduce partial sums in ascending order on first process
 if (proc_id == 0) {
     double res(*psum_d);
 

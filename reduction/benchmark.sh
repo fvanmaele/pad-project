@@ -61,7 +61,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-media1 upcxx-run -n 1 -shared-heap 80% \
-            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
+            env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done 
 } > ../reduction-shared-skl-upcxx-openmp.csv
 
@@ -70,7 +70,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% \
-            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
+            env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-shared-knl-upcxx-openmp.csv
 
@@ -107,7 +107,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
+            env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-skl-upcxx-openmp.csv
 
@@ -116,6 +116,6 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
+            env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-knl-upcxx-openmp.csv

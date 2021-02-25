@@ -91,6 +91,7 @@ int main(int argc, char** argv)
     // Timings for different iterations; the mean is taken later.
     std::vector<double> vt;
     vt.reserve(iterations);
+
     // Reduction
     for (int iter = 1; iter <= iterations; ++iter)
     {
