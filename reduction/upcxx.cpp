@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <cmath>
@@ -71,11 +72,8 @@ int main(int argc, char** argv)
 
     // Block size for each process
     const index_t block_size = N / nproc;
-
-    if (block_size % 2 != 0)
-        throw std::invalid_argument("block size must be even");
-    if (N != block_size * nproc)
-        throw std::invalid_argument("array cannot be divided in same-sized blocks");
+    assert(block_size % 2 == 0);
+    assert(N == block_size * nproc);
 
     // Initialize array, with blocks divided between processes
     std::vector<float> u(block_size);
