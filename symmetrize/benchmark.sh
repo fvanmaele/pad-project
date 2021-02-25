@@ -139,6 +139,7 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
 # SKL, UPCXX + OpenMP (4 processes, max. 16 threads)
 ((run_openmp_skl_dist)) && {
     printf 'X,Time[s],Throughput[GB/s]\n'
+
     GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
         env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=2 symmetrize/symmetrize-upcxx-openmp-skl --dim "$((1<<5))" --iterations "$iterations" --bench
     

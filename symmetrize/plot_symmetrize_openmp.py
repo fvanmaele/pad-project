@@ -25,9 +25,9 @@ def set_ax(ax,min,max):
 		a.set_yscale('log')
 		a.legend(loc=2,prop={'size': 12})
 		if i == 0:
-			a.set_title("Shared Memory",fontsize=20)
+			a.set_title("Shared Memory (OpenMP)",fontsize=20)
 		else:
-			a.set_title("Distributed Memory",fontsize=20)
+			a.set_title("Distributed Memory (OpenMP)",fontsize=20)
 		a.grid(True,which="both",ls="-")
 
 def plot_df(df1,df2):
@@ -37,16 +37,16 @@ def plot_df(df1,df2):
 	sns.lineplot(ax=axes[0],data=df1,x=[x for x in range(5,15)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
 	sns.lineplot(ax=axes[1],data=df2,x=[x for x in range(5,15)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
 	set_ax(axes,global_min,global_max)
-	fig.savefig('symmetrize.pdf')
-	fig.savefig('symmetrize.png', bbox_inches='tight')
+	fig.savefig('symmetrize_openmp.pdf')
+	fig.savefig('symmetrize_openmp.png', bbox_inches='tight')
 
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.
 #	Adjust the axes settings as needed (set_ax).
-	skl_shared = 'csv/symmetrize-shared-skl-upcxx.csv'
-	knl_shared = 'csv/symmetrize-shared-knl-upcxx.csv'
-	skl_dist = 'csv/symmetrize-dist-skl-upcxx.csv'
-	knl_dist = 'csv/symmetrize-dist-knl-upcxx.csv'
+	skl_shared = 'csv/symmetrize-shared-skl-upcxx-openmp.csv'
+	knl_shared = 'csv/symmetrize-shared-knl-upcxx-openmp.csv'
+	skl_dist = 'csv/symmetrize-dist-skl-upcxx-openmp.csv'
+	knl_dist = 'csv/symmetrize-dist-knl-upcxx-openmp.csv'
 
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')
