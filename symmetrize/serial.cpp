@@ -1,14 +1,16 @@
 
 #include <random>
-#include <ios>
 #include <iostream>
+#include <cstddef>
+#include <cstdio>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <chrono>
+#include <filesystem>
 
 #include <cstdlib>
-#include <getopt.h>
+#include <lyra/lyra.hpp>
 
 using Clock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double>;
@@ -33,40 +35,32 @@ std::ostream& dump_vector(std::ostream& stream, const std::vector<T>& v, const c
 int main(int argc, char** argv) {
     index_t dim = 0;   // amount of rows/columns
     int seed = 42;  // seed for pseudo-random generator
-    bool write = false;
     bool bench = false;
-    const char* file_path = "serial_matrix.txt";
-    const char* file_path_sym = "serial_matrix_symmetrized.txt";
+    bool write = false;
+    bool show_help = false;
+    std::filesystem::path file_path("serial_matrix.txt");
+    std::filesystem::path file_path_sym("serial_matrix_symmetrized.txt");
 
-    struct option long_options[] = {
-        { "dim",  required_argument, NULL, 'd' },
-        { "seed", required_argument, NULL, 't' },
-        { "write", no_argument, NULL, 'w'},
-        { "bench", no_argument, NULL, 'b'},
-        { NULL, 0, NULL, 0 }
-    };
+    auto cli = lyra::help(show_help) |
+        lyra::opt(dim, "dim")["-N"]["--dim"](
+            "Size of reduced vec, must be specified") |
+        lyra::opt(seed, "seed")["--seed"](
+            "Seed for pseudo-random number generation, default is 42") |
+        lyra::opt(bench)["--bench"](
+            "Print benchmarks to standard output") |
+        lyra::opt(write)["--write"](
+            "Serialize matrix before and after symmetrization");
+    auto result = cli.parse({argc, argv});
 
-    int c;
-    while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
-        switch(c) {
-            case 'd':
-                dim = std::stol(optarg);
-                break;
-            case 't':
-                seed = std::stoi(optarg);
-                break;
-            case 'w':
-                write = true;
-                break;
-            case 'b':
-                bench = true;
-                break;
-            case '?':
-                break;
-            default:
-                std::terminate();
-        }
-    }
+    if (!result) {
+		std::cerr << "Error in command line: " << result.errorMessage()
+			  << std::endl;
+		exit(1);
+	}
+	if (show_help) {
+		std::cout << cli << std::endl;
+		exit(0);
+	}
     if (dim <= 0) {
         std::cerr << "positive dimension required (specify with --dim)" << std::endl;
         std::exit(1);
@@ -95,7 +89,8 @@ int main(int argc, char** argv) {
 
     // Seralize original matrix
     if (write) {
-        std::ofstream stream{file_path};
+        std::ofstream stream{file_path.c_str()};
+
         if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
             dump_vector(stream, lower, "LOWER (C-m): ");
@@ -104,10 +99,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    timePoint<Clock> t;
-    if (bench) {
-        t = Clock::now();
-    }
+    // XXX: implement multiple iterations as in parallel implementation (e.g. to measure speedup)
+    timePoint<Clock> t = Clock::now();
 
     // Because lower and upper triangle and stored symmetricaly, we can symmetrize
     // the matrix as a SAXPY operation (over the lower and upper triangle) in a
@@ -118,15 +111,15 @@ int main(int argc, char** argv) {
         upper[i] = s;
     }
 
-    if (bench) {
-        Duration d = Clock::now() - t;
-        double time = d.count(); // time in seconds
-        std::cout << std::fixed << time << std::endl;
-    }
+    Duration d = Clock::now() - t;
+    double time = d.count(); // time in seconds
+    double throughput = dim * (dim-1) * sizeof(float) * 1e-9 / time;
+    std::fprintf(stdout, "%ld,%.12f,%.12f\n", dim, time, throughput);
 
     // Serialize new (symmetrized) matrix
     if (write) {
-        std::ofstream stream{file_path_sym};
+        std::ofstream stream{file_path_sym.c_str()};
+
         if (stream) {
             stream << "DIM: " << dim << "x" << dim << std::endl;
             dump_vector(stream, lower, "LOWER (C-m): ");
