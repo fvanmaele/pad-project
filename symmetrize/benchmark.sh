@@ -42,6 +42,7 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
 # SKL, UPCXX (4 processes)
 ((run_upcxx_skl)) && { 
     printf 'X,Time[s],Throughput[GB/s]\n'
+    
     for i in {5..14}; do
         srun -w mp-media1 upcxx-run -n 4 -shared-heap 80% \
             symmetrize/symmetrize-upcxx-skl --dim "$((1<<i))" --iterations "$iterations" --bench
@@ -70,6 +71,7 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
 # SKL, UPCXX + OpenMP (1 process, 4 threads)
 ((run_openmp_skl)) && {
     printf 'X,Time[s],Throughput[GB/s]\n'
+    
     for i in {5..14}; do
         srun -w mp-media1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=4 \                
             symmetrize/symmetrize-upcxx-openmp-skl --dim "$((1<<i))" --iterations "$iterations" --bench
@@ -108,6 +110,7 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
 # SKL, UPCXX (max. 16 processes)
 ((run_upcxx_skl_dist)) && {
     printf 'X,Time[s],Throughput[GB/s]\n'
+    
     GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" upcxx-run -N 4 -n 8 -shared-heap 80% \
         symmetrize/symmetrize-upcxx-skl --dim "$((1<<5))" --iterations "$iterations" --bench
 

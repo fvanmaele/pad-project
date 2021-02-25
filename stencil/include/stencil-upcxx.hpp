@@ -14,10 +14,6 @@ stencil_get_ghost_cells(dist_ptr<float> &input_g, index_t n_local, index_t n_gho
     // Downcast to regular C++ pointer
     float *input = downcast_dptr<float>(input_g);
 
-    // XXX: Because the fetch function is asynchronous, we have to synchronize on completion,
-    // using a call to wait(). Later, we will see how to overlap asynchronous operations, that
-    // is, when communication is split-phased.
-
     // As rget does not allow source values to be modified until operation completion is notified,
     // first retrieve all right neighbors, then all left neighbors.
     if (proc_id != proc_n - 1) {

@@ -10,7 +10,7 @@ min=32
 max=512
 radius=2 # default values from sample benchmark script
 steps=5
-iterations=4 # TODO
+iterations=10 # TODO
 
 # Enabled benchmarks
 run_upcxx_media=1
@@ -32,20 +32,20 @@ bench() {
     # Alternate the doubling of the x-, y- and z-dimension.
     while (( x < max )); do
         printf >&2 'Benchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --iterations "$iterations" --bench
         x=$((x * 2))
         
         printf >&2 '\nBenchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --iterations "$iterations" --bench
         y=$((y * 2))
         
         printf >&2 '\nBenchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+        "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --iterations "$iterations" --bench
         z=$((z * 2))
     done
 
     printf >&2 '\nBenchmarking x=%d, y=%d, z=%d, radius=%d, steps=%d\n' "$x" "$y" "$z" "$radius" "$steps"
-    "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --bench
+    "$@" -x "$x" -y "$y" -z "$z" --radius "$radius" --steps "$steps" --iterations "$iterations" --bench
 }
 
 rm -rf build-shared
@@ -57,9 +57,8 @@ mkdir build-dist
 # SHARED MEMORY, SKL
 # ---------------------------------------
 cd build-shared
-# XXX: this uses the top-level CMakeLists; use standalone CMakeLists for reduction/symmetrize/stencil
 UPCXX_NETWORK=smp cmake -DCMAKE_BUILD_TYPE=Release ../.. # -march=knl, -march=skylake, smp conduit
-ninja -v
+ninja -v stencil-upcxx-skl stencil-upcxx-knl
 
 if (( run_upcxx_media )); then
     bench srun -w 'mp-media1' \
@@ -81,7 +80,7 @@ cd -
 cd build-dist
 # XXX: this uses the top-level CMakeLists; use standalone CMakeLists for reduction/symmetrize/stencil
 UPCXX_NETWORK=udp cmake -DCMAKE_BUILD_TYPE=Release ../.. # -march=knl, -march=skylake, udp conduit
-ninja -v
+ninja -v stencil-upcxx-skl stencil-upcxx-knl
 
 if (( run_upcxx_media_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" \

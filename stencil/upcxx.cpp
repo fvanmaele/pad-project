@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <string>
 #include <chrono>
+#include <vector>
+#include <algorithm>
 
 #include <lyra/lyra.hpp>
 
@@ -26,6 +28,7 @@ bool is_positive(Ns... args) {
 int main(int argc, char** argv) 
 {
     int seed = 42;  // seed for pseudo-random generator
+    int iterations = 1;
     bool bench = false;
     bool write = false;
     bool show_help = false;
@@ -50,8 +53,10 @@ int main(int argc, char** argv)
             "Stencil radius, default is 4") |
         lyra::opt(steps, "steps")["-t"]["--steps"](
             "Number of time steps, default is 5") |
+        lyra::opt(iterations, "iterations")["--iterations"](
+            "Number of iterations, default is 1") |
         lyra::opt(bench)["--bench"](
-            "Enable benchmarking") |
+            "Print benchmarks to standard output") |
         lyra::opt(seed, "seed")["--seed"](
             "Seed for pseudo-random number generation, default is 42") |
         lyra::opt(write)["--write"](
@@ -98,8 +103,8 @@ int main(int argc, char** argv)
     // Veven -> input array on even steps, output array on uneven steps.
     // Vodd  -> output array on even steps, input array on uneven steps.
     // Alternation between input and output array allows to implement the stencil as a gather.
-    upcxx::dist_object<upcxx::global_ptr<float>> Veven_g = upcxx::new_array<float>(n_local);
-    upcxx::dist_object<upcxx::global_ptr<float>> Vodd_g = upcxx::new_array<float>(n_local);    
+    dist_ptr<float> Veven_g = upcxx::new_array<float>(n_local);
+    dist_ptr<float> Vodd_g = upcxx::new_array<float>(n_local);    
     float* Veven = downcast_dptr<float>(Veven_g);
     float* Vodd = downcast_dptr<float>(Vodd_g);
 
@@ -115,55 +120,56 @@ int main(int argc, char** argv)
     rgen.discard(2 * upcxx::rank_me() * n_block);
     stencil_init_data(Nx, Ny, Nz, radius, rgen, Veven, Vodd, Vsq);
 
+    // Initialize coefficients with fixed values
     for (int i = 0; i < radius+1; ++i) {
         coeff[i] = 0.1f;
     }
-    upcxx::barrier();
 
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path);
     }
 
-    // Begin FDTD
-    time_point<Clock> t{};
-    if (proc_id == 0 && bench) { // benchmark on the first process
-        t = Clock::now();
-    }
-    // if (bench) {
-    //     time_point<Clock> t{};
-    //     if (proc_id == 0) {
-    //         t = Clock::now();
-    //     }
-    // TODO: allow variable number of iterations, take average
-    //     for (int it = 0; it < iterations; ++it) {
-    //     }
-    // }
-    for (int t = 0; t < steps; ++t) {
-        bool is_even_ts = (t & 1) == 0;
-
-        if (proc_n > 1) {
-            // std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
-            stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g,
-                                    n_local, n_ghost_offset);
-        } // barrier
-        stencil_parallel_step(radius, radius + dim_x,
-                              radius, radius + dim_y,
-                              radius, radius + dim_zi,
-                              Nx, Ny, Nz, coeff, Vsq,
-                              is_even_ts ? Veven : Vodd,
-                              is_even_ts ? Vodd : Veven, 
-                              radius);
-
-        // Wait until all processes have finished calculations before proceeding to next step
+    // Timings for different iterations, of which the mean is taken.
+    std::vector<double> vt;
+    vt.reserve(iterations);
+    // FDTD
+    for (int iter = 1; iter <= iterations; ++iter) {
+        // Set up a barrier before doing any timing
         upcxx::barrier();
-    }
+        time_point<Clock> t = Clock::now();
 
-    if (proc_id == 0 && bench) {
-        Duration d = Clock::now() -t;
-        double time = d.count(); // time in seconds
-        // double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
-        double throughput = steps * sizeof(float) * (dim_x * dim_y * dim_z * (2 + 2*3*radius) - 2*radius*(dim_x * dim_y + dim_y * dim_z + dim_x * dim_z)) * 1e-9 / time;
-        std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%.12f,%.12f\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
+        // Perform time steps
+        for (int t = 0; t < steps; ++t) {
+            bool is_even_ts = (t & 1) == 0;
+
+            if (proc_n > 1) {
+                // std::fprintf(stderr, "Retrieving ghost cells for %s, rank (%d/%d), step %d\n", "Veven", proc_id, proc_n, t);
+                stencil_get_ghost_cells(is_even_ts ? Veven_g : Vodd_g,
+                                        n_local, n_ghost_offset);
+            } // barrier
+            stencil_parallel_step(radius, radius + dim_x,
+                                radius, radius + dim_y,
+                                radius, radius + dim_zi,
+                                Nx, Ny, Nz, coeff, Vsq,
+                                is_even_ts ? Veven : Vodd,
+                                is_even_ts ? Vodd : Veven, 
+                                radius);
+            upcxx::barrier(); // wait until all processes have finished calculations
+        }
+        if (proc_id == 0) {
+            Duration d = Clock::now() -t;
+            double time = d.count(); // time in seconds
+            vt.push_back(time);
+        }
+    }
+    if (proc_id == 0) {
+        double time = std::accumulate(vt.begin(), vt.end(), 0.);
+        time /= vt.size();
+
+        if (bench) {
+            double throughput = dim_x * dim_y * dim_z * sizeof(float) * steps * 1e-9 / time; // throughput in Gb/s
+            std::fprintf(stdout, "%ld,%ld,%ld,%d,%d,%.12f,%.12f\n", dim_x, dim_y, dim_z, steps, radius, time, throughput);
+        }
     }
     if (write) {
         dump_stencil(Veven, Vodd, Vsq, n_local, n_ghost_offset, file_path_steps_cell, true);
