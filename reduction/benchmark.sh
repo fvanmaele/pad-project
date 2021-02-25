@@ -6,16 +6,16 @@ type ninja
 [[ -r $HOME/source/vcpkg/scripts/buildsystems/vcpkg.cmake ]]
 
 # Enabled benchmarks (shared)
-#run_upcxx_skl=1
-#run_upcxx_knl=1
-#run_openmp_skl=1
-#run_openmp_knl=1
+run_upcxx_skl=1
+run_upcxx_knl=1
+run_openmp_skl=1
+run_openmp_knl=1
 
 # Enabled benchmarks (distributed)
-#run_upcxx_skl_dist=1
-run_upcxx_knl_dist=1 # XXX: errors on 1<<29, 1<<30
-#run_openmp_skl_dist=1
-#run_openmp_knl_dist=1
+run_upcxx_skl_dist=1
+run_upcxx_knl_dist=1
+run_openmp_skl_dist=1
+run_openmp_knl_dist=1
 
 # Number of iterations
 iterations=100
@@ -43,7 +43,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-media1 upcxx-run -n 4 -shared-heap 80% \
-            reduction/reduction-upcxx-skl --size "$((1<<i))" --iterations "$iterations"
+            reduction/reduction-upcxx-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-shared-skl-upcxx.csv
 
@@ -52,7 +52,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-knl1 upcxx-run -n 64 -shared-heap 80% \
-            reduction/reduction-upcxx-knl --size "$((1<<i))" --iterations "$iterations"
+            reduction/reduction-upcxx-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done 
 } > ../reduction-shared-knl-upcxx.csv
 
@@ -61,7 +61,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-media1 upcxx-run -n 1 -shared-heap 80% \
-            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations"
+            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done 
 } > ../reduction-shared-skl-upcxx-openmp.csv
 
@@ -70,7 +70,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% \
-            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations"
+            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-shared-knl-upcxx-openmp.csv
 
@@ -89,7 +89,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" upcxx-run -N 4 -n 16 -shared-heap 80% \
-            reduction/reduction-upcxx-skl --size "$((1<<i))" --iterations "$iterations"
+            reduction/reduction-upcxx-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-skl-upcxx.csv
 
@@ -98,7 +98,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 256 \
-            reduction/reduction-upcxx-knl --size "$((1<<i))" --iterations "$iterations"
+            reduction/reduction-upcxx-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-knl-upcxx.csv
 
@@ -107,7 +107,7 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations"
+            env OMP_NUM_THREADS=4 reduction/reduction-upcxx-openmp-skl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-skl-upcxx-openmp.csv
 
@@ -116,6 +116,6 @@ ninja -v reduction-upcxx-knl reduction-upcxx-skl \
     printf 'Size,Time[s],Throughput[GB/s]\n'
     for i in {15..30}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations"
+            env OMP_NUM_THREADS=64 reduction/reduction-upcxx-openmp-knl --size "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../reduction-dist-knl-upcxx-openmp.csv

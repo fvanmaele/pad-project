@@ -27,6 +27,8 @@ int main(int argc, char** argv)
     index_t N = 0; // array size
     int seed = 42; // seed for pseudo-random generator
     int iterations = 1;
+    bool write = false;
+    bool bench = false;
     bool show_help = false;
 
     auto cli = lyra::help(show_help) |
@@ -34,6 +36,10 @@ int main(int argc, char** argv)
             "Size of reduced array, must be specified") |
         lyra::opt(iterations, "iterations")["--iterations"](
             "Number of iterations, default is 1") |
+        lyra::opt(write)["--write"](
+            "Print reduction value to standard output") |
+        lyra::opt(bench)["--bench"](
+            "Print benchmarks to standard output") |
         lyra::opt(seed, "seed")["--seed"](
             "Seed for pseudo-random number generation, default is 42");
     auto result = cli.parse({argc, argv});
@@ -50,21 +56,6 @@ int main(int argc, char** argv)
     if (N <= 0) {
         std::cerr << "a positive array size is required (specify with --size)" << std::endl;
         std::exit(1);
-    }
-
-    // Sequential reduction for comparison with parallel reduction
-    double sum_serial;
-    {
-        std::vector<float> v(N);
-        std::mt19937_64 rgen(seed);
-        std::generate(v.begin(), v.end(), [&rgen]() {
-            return 0.5 + rgen() % 100;
-        });
-
-        // Use a reduction value with higher precision than the input values for improved
-        // numerical stability. An alternative (for a `float` reduction value) is pairwise
-        // or Kahan summation.
-        sum_serial = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
     }
 
     // BEGIN PARALLEL REGION
@@ -100,7 +91,7 @@ int main(int argc, char** argv)
     // Timings for different iterations; the mean is taken later.
     std::vector<double> vt;
     vt.reserve(iterations);
-
+    // Reduction
     for (int iter = 1; iter <= iterations; ++iter)
     {
         // Set up a barrier before doing any timing
@@ -121,20 +112,20 @@ int main(int argc, char** argv)
             Duration d = Clock::now() - t;
             double time = d.count(); // time in seconds
             vt.push_back(time);
+        }
 
-            // Verify against serial implementation
-            if (std::abs(sum - sum_serial) > std::numeric_limits<double>::epsilon()) {
-                std::cerr << "WARNING: parallel and serial sum mismatch (iteration: " << iter << ")" << std::endl
-                          << sum << " vs. " << sum_serial << std::endl;
-            }
+        if (write) {
+            std::cout << sum << std::endl;
         }
     }
     if (proc_id == 0) {
         double time = std::accumulate(vt.begin(), vt.end(), 0.);
         time /= vt.size(); // average time
 
-        double throughput = N * sizeof(float) * 1e-9 / time;
-        std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        if (bench) {
+            double throughput = N * sizeof(float) * 1e-9 / time;
+            std::fprintf(stdout, "%ld,%.12f,%.12f\n", N, time, throughput);
+        }
     }
     delete[] u;
 

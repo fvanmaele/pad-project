@@ -9,7 +9,7 @@ In this exercise we consider an *reduction* of a `float` array, varying in size 
 As the goal is to perform the reduction on a distributed system, this is implemented in a hierarchical
 fashion: partial sums are first computed on each process, then combined.
 
-![Hierarchical reduction](hierarchical_reduction.png)
+![Hierarchical reduction](https://mp-force.ziti.uni-heidelberg.de/asc/projects/lectures/parallel-algorithm-design/ws20/upcxx/-/raw/master/reduction/hierarchical_reduction.png)
 
 ## Comparison to serial implementation
 
@@ -26,20 +26,7 @@ For simplicity, we have opted for the first approach.
 std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
 ```
 
-The array is first filled with pseudo-random values with a fixed seed (defaulting to `42`). The reduction value
-is then computed with `std::accumulate`, and used as comparison in every iteration of the parallel reduction.
-```c++
-double sum_serial;
-{
-    std::vector<float> v(N);
-    std::mt19937_64 rgen(seed);
-    std::generate(v.begin(), v.end(), [&rgen]() {
-        return 0.5 + rgen() % 100;
-    });
-
-    sum_serial = std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
-}
-```
+The array is filled with pseudo-random values with a fixed seed (defaulting to `42`). Both parallel and serial implementations can print the reduction value to the console, all
 
 ## Parallel implementation
 
@@ -84,30 +71,29 @@ for (index_t i = 0; i < block_size; ++i) {
 Partial sums are then computed in the usual fashion (see `upcxx.cpp` and `upcxx_openmp.cpp`). The simplest way to communicate these sums between processes is `upcxx::reduce_one`. 
 
 ```c++
-double psum(0);
+double psum(0);
 #pragma omp parallel for simd schedule(static) reduction(+:psum)
-    for (std::ptrdiff_t = 0; i < block_size; ++i) {
-        psum += u[i];
+    for (std::ptrdiff_t = 0; i < block_size; ++i) {
+        psum += u[i];
     }
-double sum = upcxx::reduce_one(psum, upcxx::op_fast_add, 0).wait();
+double sum = upcxx::reduce_one(psum, upcxx::op_fast_add, 0).wait();
 ```
-
 `upcxx::reduce_one` reduces values in a **non-deterministic order** (see *UPCXX specification*, 12.2.25) and stores the result on a single process (e.g. process `0`). If a deterministic order is wanted, manual communication with e.g. `upcxx::dist_object` and `upcxx::future` is required. For example:
 
 ```c++
-// Assign partial sum to distributed object (universal name, local value)
-upcxx::dist_object<double> psum_d(psum);
+// Assign partial sum to distributed object (universal name, local value)
+upcxx::dist_object<double> psum_d(psum);
 
-// Reduce partial sums in ascending order on first process.
-if (proc_id == 0) {
-    double res(*psum_d);
+// Reduce partial sums in ascending order on first process.
+if (proc_id == 0) {
+    double res(*psum_d);
 
     // Fetch values synchronously. To fetch asynchrously, .then() can be used
     // instead of .wait(), together with upcxx::when_all().
-    for (int k = 1; k < upcxx::rank_n(); ++k) {
-        double psum = psum_d.fetch(k).wait();
-        res += psum;
-    }
+    for (int k = 1; k < upcxx::rank_n(); ++k) {
+        double psum = psum_d.fetch(k).wait();
+        res += psum;
+    }
 }
 ```
 
@@ -139,8 +125,13 @@ for the UPCXX benchmarks, and:
 
 for the UPCXX + OpenMP benchmarks.
 
-TODO: insert plots
+![UPCXX](https://mp-force.ziti.uni-heidelberg.de/asc/projects/lectures/parallel-algorithm-design/ws20/upcxx/-/raw/master/reduction/reduction.png)
 
+![OpenMP](https://mp-force.ziti.uni-heidelberg.de/asc/projects/lectures/parallel-algorithm-design/ws20/upcxx/-/raw/master/reduction/reduction_openmp.png)
+
+As the plots indicate, the hybrid OpenMP implementation leads to a higher throughput, from a smaller number of processes that need to communicate on the network.
+
+**Note:** Due to an unknown `slurm` error on the asc cluster, the UPCXX benchmark does not include sizes `1<<29` and `1<<30` for distributed KNL and 256 UPCXX processes.
 
 [ref-1]: https://hal.archives-ouvertes.fr/hal-02265534v2/document
 [ref-2]: https://www.iro.umontreal.ca/~mignotte/IFT2425/Documents/AccrateSummationMethods.pdf
