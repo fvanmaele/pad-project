@@ -43,10 +43,11 @@ def plot_df(df1,df2):
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.
 #	Adjust the axes settings as needed (set_ax).
-	skl_shared = 'stencil-shared-skl-upcxx.csv'
-	knl_shared = 'stencil-shared-knl-upcxx.csv'
-	skl_dist = 'stencil-dist-skl-upcxx.csv'
-	knl_dist = 'stencil-dist-knl-upcxx.csv'
+	skl_shared = 'csv/stencil-shared-skl-upcxx.csv'
+	knl_shared = 'csv/stencil-shared-knl-upcxx.csv'
+	skl_dist = 'csv/stencil-dist-skl-upcxx.csv'
+	knl_dist = 'csv/stencil-dist-knl-upcxx.csv'
+
 	skl = build_df(skl_shared,'Media')
 	knl = build_df(knl_shared,'Knl')
 	shared = pd.concat([skl,knl])
