@@ -21,7 +21,7 @@ def set_ax(df,ax,min,max):
 		a.set_ylabel('Throughput [GB/s]',fontsize=15)
 		a.set_xticks(range(0,13))
 		a.set_xticklabels(labels,rotation=45,fontsize=7)
-		a.set_ylim(min,max+10)
+		a.set_ylim(min,max+2)
 		#a.set_yscale('log')
 		a.legend(loc=2,prop={'size': 12})
 		if i == 0:
@@ -38,6 +38,7 @@ def plot_df(df1,df2):
 	sns.lineplot(ax=axes[1],data=df2,x=[x for x in range(0,13)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
 	set_ax(df1,axes,global_min,global_max)
 	fig.savefig('stencil.pdf')
+	fig.savefig('stencil.png', bbox_inches='tight')
 
 if __name__ == "__main__":
 #	Usage: Update the path to the CSV files accordingly.

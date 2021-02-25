@@ -22,7 +22,7 @@ cmake() {
     command cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE="$HOME/source/vcpkg/scripts/buildsystems/vcpkg.cmake" "$@"
 }
 
-# XXX: set process amount depending on z-dimension and radius (-n $..)
+# XXX: set process amount depending on z-dimension and radius (-n $..) to ensure correct results
 bench() {
     local x=$min 
     local y=$min 
@@ -62,7 +62,7 @@ ninja -v stencil-upcxx-skl stencil-upcxx-knl
 
 if (( run_upcxx_media )); then
     bench srun -w 'mp-media1' \
-        upcxx-run -n 4 -shared-heap 80% stencil/stencil-upcxx-skl > stencil-shared-skl-upcxx.csv
+        upcxx-run -n 4 -shared-heap 80% stencil/stencil-upcxx-skl > ../stencil-shared-skl-upcxx.csv
 fi
 
 # ---------------------------------------
@@ -70,7 +70,7 @@ fi
 # ---------------------------------------
 if (( run_upcxx_knl )); then
     bench srun -w 'mp-knl1' \
-        upcxx-run -n 16 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-shared-knl-upcxx.csv
+        upcxx-run -n 16 -shared-heap 80% stencil/stencil-upcxx-knl > ../stencil-shared-knl-upcxx.csv
 fi
 
 # ---------------------------------------
@@ -84,7 +84,7 @@ ninja -v stencil-upcxx-skl stencil-upcxx-knl
 
 if (( run_upcxx_media_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-media[1-4] -n %N %C" \
-        upcxx-run -N 4 -n 16 -shared-heap 80% stencil/stencil-upcxx-skl > stencil-dist-skl-upcxx.csv
+        upcxx-run -N 4 -n 16 -shared-heap 80% stencil/stencil-upcxx-skl > ../stencil-dist-skl-upcxx.csv
 fi
 
 # ---------------------------------------
@@ -92,5 +92,5 @@ fi
 # ---------------------------------------
 if (( run_upcxx_knl_cluster )); then
     bench env GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" \
-        upcxx-run -N 4 -n 64 -shared-heap 80% stencil/stencil-upcxx-knl > stencil-dist-knl-upcxx.csv
+        upcxx-run -N 4 -n 64 -shared-heap 80% stencil/stencil-upcxx-knl > ../stencil-dist-knl-upcxx.csv
 fi
