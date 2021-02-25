@@ -26,7 +26,7 @@ For simplicity, we have opted for the first approach.
 std::accumulate<std::vector<float>::iterator, double>(v.begin(), v.end(), 0.0);
 ```
 
-The array is filled with pseudo-random values with a fixed seed (defaulting to `42`). Both parallel and serial implementations can print the reduction value to the console, all
+The array is filled with pseudo-random values using `std::mt19937_64` and a fixed seed. To ensure consistency with the serial implementation, the parallel implementation uses `std::mt19937_64::discard` for each process (see [Parallel implementation](#parallel-implementation).) Reduction values are then compared by printing them to standard output.
 
 ## Parallel implementation
 
@@ -46,7 +46,7 @@ The implementation first divides an array of size `N` evenly between processes a
 std::ptrdiff_t block_size = N / upcxx::rank_n();
 std::ptrdiff_t block_size_omp = block_size / omp_get_num_threads();
 ```
-where we assume (and check) the division is without remainder. As in the serial implementation, these blocks are initialized with pseudo-random values (using the same seed and `std::mt19937_64::discard()` where appropriate).
+where we assume (and check) the division is without remainder. As in the serial implementation, these blocks are initialized with pseudo-random values, using `std::mt19937_64::discard()` to ensure consistency.
 
 ```c++
 std::mt19937_64 rgen(seed);
