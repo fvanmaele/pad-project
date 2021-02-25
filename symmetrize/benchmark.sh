@@ -38,6 +38,7 @@ UPCXX_NETWORK=smp cmake -DCMAKE_BUILD_TYPE=Release ../..
 ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
          symmetrize-upcxx-openmp-knl symmetrize-upcxx-openmp-skl
 
+
 # SKL, UPCXX (4 processes)
 ((run_upcxx_skl)) && { 
     printf 'X,Time[s],Throughput[GB/s]\n'
@@ -47,21 +48,24 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
     done
 } > ../symmetrize-shared-skl-upcxx.csv
 
+
 # KNL, UPCXX (max. 64 processes)
 ((run_upcxx_knl)) && {
+    nproc_min=8
     printf 'X,Time[s],Throughput[GB/s]\n'
-    srun -w mp-knl1 upcxx-run -n 8 -shared-heap 80% \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<5))" --iterations "$iterations" --bench
-    srun -w mp-knl1 upcxx-run -n 16 -shared-heap 80% \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<6))" --iterations "$iterations" --bench
-    srun -w mp-knl1 upcxx-run -n 32 -shared-heap 80% \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<7))" --iterations "$iterations" --bench
+
+    for i in {5..7}; do    
+        srun -w mp-knl1 upcxx-run -n "$nproc_min" -shared-heap 80% \
+            symmetrize/symmetrize-upcxx-knl --dim "$((1<<i))" --iterations "$iterations" --bench
+        nproc_min=$((nproc_min * 2))
+    done
 
     for i in {8..14}; do
         srun -w mp-knl1 upcxx-run -n 64 -shared-heap 80% \
             symmetrize/symmetrize-upcxx-knl --dim "$((1<<i))" --iterations "$iterations" --bench
     done 
 } > ../symmetrize-shared-knl-upcxx.csv
+
 
 # SKL, UPCXX + OpenMP (1 process, 4 threads)
 ((run_openmp_skl)) && {
@@ -72,16 +76,18 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
     done 
 } > ../symmetrize-shared-skl-upcxx-openmp.csv
 
+
 # KNL, UPCXX + OpenMP (1 process, max. 64 threads)
 ((run_openmp_knl)) && {
+    nproc_min=8
     printf 'X,Time[s],Throughput[GB/s]\n'
-    srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=8 \
-        symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<5))" --iterations "$iterations" --bench
-    srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=16 \
-        symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<6))" --iterations "$iterations" --bench
-    srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=32 \
-        symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<7))" --iterations "$iterations" --bench
-    
+
+    for i in {5..7}; do
+        srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS="$nproc_min" \
+            symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<i))" --iterations "$iterations" --bench
+        nproc_min=$((nproc_min * 2))
+    done
+
     for i in {8..14}; do
         srun -w mp-knl1 upcxx-run -n 1 -shared-heap 80% env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=64 \
             symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<i))" --iterations "$iterations" --bench
@@ -98,6 +104,7 @@ UPCXX_NETWORK=udp cmake -DCMAKE_BUILD_TYPE=Release ../..
 ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
          symmetrize-upcxx-openmp-knl symmetrize-upcxx-openmp-skl
 
+
 # SKL, UPCXX (max. 16 processes)
 ((run_upcxx_skl_dist)) && {
     printf 'X,Time[s],Throughput[GB/s]\n'
@@ -110,25 +117,24 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
     done
 } > ../symmetrize-dist-skl-upcxx.csv
 
+
 # KNL, UPCXX (max. 256 processes)
 ((run_upcxx_knl_dist)) && {
+    nproc_min=8
     printf 'X,Time[s],Throughput[GB/s]\n'
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 8 \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<5))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 16 \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<6))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 32 \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<7))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 64 \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<8))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 128 \
-        symmetrize/symmetrize-upcxx-knl --dim "$((1<<9))" --iterations "$iterations" --bench
+
+    for i in {5..9}; do
+        GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n "$nproc_min" \
+            symmetrize/symmetrize-upcxx-knl --dim "$((1<<i))" --iterations "$iterations" --bench
+        nproc_min=$((nproc_min * 2))
+    done
         
     for i in {10..14}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 256 \
             symmetrize/symmetrize-upcxx-knl --dim "$((1<<i))" --iterations "$iterations" --bench
     done
 } > ../symmetrize-dist-knl-upcxx.csv
+
 
 # SKL, UPCXX + OpenMP (4 processes, max. 16 threads)
 ((run_openmp_skl_dist)) && {
@@ -142,20 +148,18 @@ ninja -v symmetrize-upcxx-knl symmetrize-upcxx-skl \
     done
 } > ../symmetrize-dist-skl-upcxx-openmp.csv
 
+
 # KNL, UPCXX + OpenMP (4 processes, max. 256 threads)
 ((run_openmp_knl_dist)) && {
+    nproc_min=2
     printf 'X,Time[s],Throughput[GB/s]\n'
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-        env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=2 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<5))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-        env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=4 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<6))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-        env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=8 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<7))" --iterations "$iterations" --bench            
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-        env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=16 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<8))" --iterations "$iterations" --bench
-    GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
-        env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=32 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<9))" --iterations "$iterations" --bench
-    
+
+    for i in {5..9}; do
+        GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
+            env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS="$nproc_min" symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<i))" --iterations "$iterations" --bench
+        nproc_min=$((nproc_min * 2))
+    done
+
     for i in {10..14}; do
         GASNET_SPAWNFN=C GASNET_CSPAWN_CMD="srun -w mp-knl[1-4] -n %N %C" upcxx-run -N 4 -n 4 -shared-heap 80% \
             env OMP_PLACES=cores OMP_PROC_BIND=true OMP_NUM_THREADS=64 symmetrize/symmetrize-upcxx-openmp-knl --dim "$((1<<i))" --iterations "$iterations" --bench
