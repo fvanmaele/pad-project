@@ -20,9 +20,6 @@ find_package(UPCXX REQUIRED)
 find_path(BFGROUP_LYRA_INCLUDE_DIRS "lyra/arg.hpp")
 include_directories(${BFGROUP_LYRA_INCLUDE_DIRS})
 
-# Ensure asserts work in Release mode
-add_compile_options(-UNDEBUG)
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(
         -Wall -Wextra -Wpedantic
