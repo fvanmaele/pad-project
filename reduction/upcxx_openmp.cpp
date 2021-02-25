@@ -70,7 +70,6 @@ int main(int argc, char** argv)
 
     // Allocate array, with blocks divided between processes
     float* u = new float[N];
-
     std::mt19937_64 rgen(seed);
 
 #pragma omp parallel firstprivate(rgen)

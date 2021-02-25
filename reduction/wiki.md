@@ -1,5 +1,5 @@
 - [Introduction](#introduction)
-- [Comparison to serial implementation](#comparison-to-serial-implementation)
+- [Comparison to sequential implementation](#comparison-to-sequential-implementation)
 - [Parallel implementation](#parallel-implementation)
   - [Tasks](#tasks)
   - [Implementation](#implementation)
@@ -13,9 +13,9 @@ fashion: partial sums are first computed on each process, then combined.
 
 ![Hierarchical reduction](https://mp-force.ziti.uni-heidelberg.de/asc/projects/lectures/parallel-algorithm-design/ws20/upcxx/-/raw/master/reduction/hierarchical_reduction.png)
 
-## Comparison to serial implementation
+## Comparison to sequential implementation
 
-In the serial implementation, the full range of values is added to a reduction value in a single iteration,
+In the sequential implementation, the full range of values is added to a reduction value in a single iteration,
 for example with `std::accumulate`. As described above, a parallel implementation adds a smaller range of values, and then combines the results. In particular, it may have better numerical stability than a serial implementation. To avoid this issue, there are several approaches:
 
 * Use a reduction value with greater precision than the input values (`double` or `long double`);
@@ -32,24 +32,20 @@ The array is filled with pseudo-random values using `std::mt19937_64` and a fixe
 
 ## Parallel implementation
 
-### Tasks 
+### Tasks
 
-For the parallel implementation, we have two main concepts of "tasks":
+For the parallel implementation, we have two concepts of "tasks":
 
-* UPCXX *process*, which can locally on a shared memory system or distributed on a cluster;
+* UPCXX *processes*, which can be local on a shared memory system, or distributed on a cluster;
 * OpenMP *threads*, which are local to an UPCXX process.
 
 The main reason for combining threads with processes is that processes require *communication*. If we wish to increase the amount of parallelism, this may thus result in additional overhead, especially if processes are located on different nodes and have to communicate over the network. 
 
 While UPCXX provides additional mechanisms to reduce this overhead (i.e. `upcxx::broadcast()` and `upcxx::local_team()`), a simple way is to use a single UPCXX process per node, and a fixed amount of OpenMP threads per process. Refer to the [Benchmarks](#benchmarks) section for details.
 
-**Important:** upcxx collectives (e.g. `upcxx::barrier`, `upcxx::reduce_one`) should only be called by the "master persona" thread, i.e. the (single) thread that called `upcxx::init`. This can be done with `#pragma omp master` inside an OpenMP parallel region, or by using multiple OpenMP regions. 
+**Important:** upcxx collectives (e.g. `upcxx::barrier`, `upcxx::reduce_one`) should only be called by the *master persona*, i.e. the (single) thread that called `upcxx::init`. This can be done with `#pragma omp master` inside an OpenMP parallel region, or by using multiple OpenMP regions. 
 
-For simplicity, we assume thread affinity holds between regions (i.e. `OMP_PROC_BIND` is set to `TRUE`) and used the latter approach:
-```bash
-export OMP_PLACES=cores
-export OMP_PROC_BIND=true
-```
+For simplicity, we assume thread affinity holds between regions (i.e. `OMP_PROC_BIND` is set to `TRUE`, see [3][ref-3]) and used multiple OpenMP regions.
 
 ### Implementation
 
@@ -114,7 +110,9 @@ We use the following criteria for benchmarking:
 
 * Throughput is computed as `N * sizeof(float) * 1e-9 / time`;
 * Array intialization is not timed, only reduction;
-* 100 iterations are performed per size `N`, with `time` taken as the average over these iterations.
+* 100 iterations are performed per size `N`, with `time` taken as the average over these iterations;
+* `OMP_PROC_BIND` is set to `true`;
+* `OMP_PLACES` is set to `cores`.
 
 Process and thread amount are chosen as follows:
 
@@ -146,3 +144,4 @@ As the plots indicate, the hybrid OpenMP implementation leads to a higher throug
 
 [ref-1]: https://hal.archives-ouvertes.fr/hal-02265534v2/document
 [ref-2]: https://www.iro.umontreal.ca/~mignotte/IFT2425/Documents/AccrateSummationMethods.pdf
+[ref-3]: https://hpc-wiki.info/hpc/Binding/Pinning

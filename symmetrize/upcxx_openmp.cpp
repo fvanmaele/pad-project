@@ -191,7 +191,14 @@ int main(int argc, char** argv) {
             vt.push_back(time);
         }
     }
-      
+    if (proc_id == 0) {
+        double time = std::accumulate(vt.begin(), vt.end(), 0.);
+        time /= iterations;
+
+        double throughput = dim * (dim-1) * sizeof(float) * 1e-9 / time;
+        std::fprintf(stdout, "%ld,%.12f,%.12f\n", dim, time, throughput);
+    }  
+    
     if (write) {
         if (proc_id == 0) {
             std::ofstream ofs(file_path_sym.c_str(), std::ofstream::trunc);

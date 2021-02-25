@@ -120,7 +120,6 @@ int main(int argc, char **argv)
     // Initialize upper and lower triangle with pseudo-random values
     std::mt19937_64 rgen(seed);
     rgen.discard(proc_id * triangle_n * 2);
-
     for (index_t i = 0; i < triangle_n; ++i) {
         lower[i] = 0.5 + rgen() % 100;
         upper[i] = 1.0 + rgen() % 100;
@@ -179,10 +178,11 @@ int main(int argc, char **argv)
         }
     }
     if (proc_id == 0) {
-        for (auto&& time : vt) {
-            double throughput = dim * (dim-1) * sizeof(float) * 1e-9 / time;
-            std::fprintf(stdout, "%ld,%.12f,%.12f\n", dim, time, throughput);
-        }
+        double time = std::accumulate(vt.begin(), vt.end(), 0.);
+        time /= iterations;
+        
+        double throughput = dim * (dim-1) * sizeof(float) * 1e-9 / time;
+        std::fprintf(stdout, "%ld,%.12f,%.12f\n", dim, time, throughput);
     }
     
     if (write) {
