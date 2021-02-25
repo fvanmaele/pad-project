@@ -35,7 +35,7 @@ def plot_df(df1,df2):
         sns.lineplot(ax=axes[0],data=df1,x=[x for x in range(15,31)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
         sns.lineplot(ax=axes[1],data=df2,x=[x for x in range(15,31)]*2,y='Throughput[GB/s]',hue='Partition',marker='X',legend=True)
         set_ax(axes,global_min,global_max)
-        fig.savefig('reduction.pdf')
+        fig.savefig('reduction.png')
 
 if __name__ == "__main__":
 #       Usage: Update the path to the CSV files accordingly.
